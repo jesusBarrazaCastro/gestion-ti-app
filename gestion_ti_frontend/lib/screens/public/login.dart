@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_ti_frontend/utilities/msg_util.dart';
 import 'package:go_router/go_router.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../main.dart';
 import '../../widgets/button.dart';
 import '../../widgets/input.dart';
+import 'dart:html' as html;
+
 
 
 class Login extends StatefulWidget {
@@ -16,12 +21,62 @@ class Login extends StatefulWidget {
 
 class _LoginState extends State<Login> {
 
-  //final SupabaseClient supabase = Supabase.instance.client;
+  final SupabaseClient supabase = Supabase.instance.client;
 
   bool _isLoading = false;
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _userController = TextEditingController();
   final TextEditingController _passController = TextEditingController();
+
+
+  Future<void> _saveUserData(Map<String, dynamic> userData) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_id', userData['id'].toString());
+    await prefs.setString('user_name', userData['nombre'] ?? '');
+    await prefs.setString('user_mail', userData['correo_electronico'] ?? '');
+    await prefs.setString('role', userData['role'] ?? '');
+  }
+
+  Future<void> _login() async{
+    if(!_formKey.currentState!.validate()){
+      return;
+    }
+    setState(() {_isLoading = true;});
+    try {
+      var response = await supabase.auth.signInWithPassword(
+          email: _userController.text,
+          password: _passController.text
+      );
+      final Session? session = response.session;
+      final User? user = response.user;
+
+      if(user == null) {
+        MsgtUtil.showError(context, 'Usuario no encontrado.');
+        return;
+      }
+      final personaResponse = await supabase
+          .from('persona')
+          .select('id, nombre, apellido_paterno, correo_electronico, role')
+          .eq('id', user.id)
+          .maybeSingle();
+      if (personaResponse == null) {
+        MsgtUtil.showError(context, 'No se encontraron datos del usuario.');
+        return;
+      }
+      _saveUserData({
+        'user_id': personaResponse['id'],
+        'nombre': '${ personaResponse['nombre']} ${personaResponse['apellido_paterno']}',
+        'correo': personaResponse['correo_electronico'],
+        'role': personaResponse['role']
+      });
+      MsgtUtil.showSuccess(context, 'Bienvenido ${personaResponse['nombre']}');
+      html.window.history.replaceState(null, '', '/home');
+      context.go('/home');
+    } catch(e) {
+      MsgtUtil.showError(context, 'E-mail o contraseña incorrectos.');
+    }
+    setState(() {_isLoading = false;});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,48 +123,7 @@ class _LoginState extends State<Login> {
                 Button(
                   text: 'Iniciar sesión',
                   width: 300,
-                  onPressed: () async{
-                    navigateWithPersistence(context, '/home');
-                    Navigator.of(context).pop();
-                   /* if(!_formKey.currentState!.validate()){
-                      return;
-                    }
-                    setState(() {_isLoading = true;});
-                    try {
-                      var response = await supabase.auth.signInWithPassword(
-                        email: _userController.text,
-                        password: _passController.text
-                      );
-                      final Session? session = response.session;
-                      final User? user = response.user;
-                      print(Navigator.of(context).widget.pages);
-                      Fluttertoast.showToast(
-                        msg: '¡Bienvenido!',
-                        toastLength: Toast.LENGTH_SHORT,
-                        gravity: ToastGravity.TOP,
-                        webPosition: "right",
-                        timeInSecForIosWeb: 3,
-                        backgroundColor: Colors.green,
-                        textColor: Colors.white,
-                        fontSize: 16
-                      );
-                      if(context.mounted){
-                        context.replace('/home');
-                      }
-                    } catch(e) {
-                      Fluttertoast.showToast(
-                        msg: 'E-mail o contraseña incorrectos.',
-                        toastLength: Toast.LENGTH_SHORT,
-                        gravity: ToastGravity.TOP,
-                        webPosition: "right",
-                        timeInSecForIosWeb: 3,
-                        webBgColor: "linear-gradient(to right, #FF0000, #FF0000)",
-                        textColor: Colors.white,
-                        fontSize: 16
-                      );
-                    }
-                    setState(() {_isLoading = false;});*/
-                  }
+                  onPressed: _login
                 )
               ],
             ),

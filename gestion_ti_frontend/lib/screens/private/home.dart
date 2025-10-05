@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 
+import '../../main.dart';
 import '../../widgets/button.dart';
 import '../../widgets/dropdown.dart';
 import '../../widgets/input.dart';
@@ -70,11 +71,13 @@ class _HomeState extends State<HomeScreen> {
             Button(
               text: 'Load',
               onPressed: () async{
-                _isLoading = true;
-                setState(() {});
-                await Future.delayed(const Duration(seconds: 4));
-                _isLoading = false;
-                setState(() {});
+                //_isLoading = true;
+                //setState(() {});
+                //await Future.delayed(const Duration(seconds: 4));
+                //_isLoading = false;
+                //setState(() {});
+                navigateWithPersistence(context, '/base');
+                Navigator.of(context).pop();
               }
             )
           ],

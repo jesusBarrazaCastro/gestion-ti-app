@@ -26,7 +26,7 @@ class Dropdown<T> extends StatelessWidget {
     this.textStyle,
     this.dropdownColor,
     this.width,
-    this.height,
+    this.height = 40,
     this.borderRadius,
     this.borderColor,
     this.borderWidth = 2.0,
@@ -68,7 +68,6 @@ class Dropdown<T> extends StatelessWidget {
                   icon: Icon(Icons.arrow_drop_down, color: borderColor ?? Theme.of(context).primaryColor),
                   borderRadius: borderRadius ?? BorderRadius.circular(8.0),
                   // Padding to match design with other widgets
-                  itemHeight: height != null ? height! - 16 : null,
                 ),
               ),
             ),

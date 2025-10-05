@@ -4,14 +4,14 @@ import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import '../../widgets/button.dart';
 import '../../widgets/input.dart';
 
-class Base extends StatefulWidget {
-  const Base({super.key});
+class Personas extends StatefulWidget {
+  const Personas({super.key});
 
   @override
-  State<Base> createState() => _Base();
+  State<Personas> createState() => _Personas();
 }
 
-class _Base extends State<Base> {
+class _Personas extends State<Personas> {
 
   bool _isLoading = false;
 
@@ -27,9 +27,7 @@ class _Base extends State<Base> {
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Text('PANTALLA PRUEBA', style: TextStyle(fontSize: 40),),
-              )
+
             ],
           ),
         )

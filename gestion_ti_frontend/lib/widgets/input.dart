@@ -34,7 +34,7 @@ class Input extends FormField<String> {
     this.textStyle,
     this.hintStyle,
     this.width,
-    this.height,
+    this.height = 40,
     this.borderRadius,
     this.borderColor,
     this.borderWidth = 2.0,

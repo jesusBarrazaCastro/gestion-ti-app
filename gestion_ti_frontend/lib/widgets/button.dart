@@ -17,7 +17,7 @@ class Button extends StatelessWidget {
     this.backgroundColor,
     this.textStyle,
     this.width,
-    this.height,
+    this.height = 40,
     this.borderRadius,
     this.icon
   }) : super(key: key);
@@ -41,9 +41,12 @@ class Button extends StatelessWidget {
               icon!,
               const SizedBox(width: 10,)
             ],
-            Text(
-              text,
-              style: textStyle ?? const TextStyle(color: Colors.white),
+            Expanded(
+              child: Text(
+                text,
+                style: textStyle ?? const TextStyle(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
             ),
           ],
         ),
