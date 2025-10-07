@@ -3,7 +3,7 @@ import 'package:another_flushbar/flushbar.dart';
 
 class MsgtUtil {
   /// Success toast
-  static void showSuccess(BuildContext context, String message) {
+  static Future<void> showSuccess(BuildContext context, String message) async {
     _showFlushbar(
       context,
       message,
@@ -13,7 +13,7 @@ class MsgtUtil {
   }
 
   /// Error toast
-  static void showError(BuildContext context, String message) {
+  static Future<void> showError(BuildContext context, String message) async {
     _showFlushbar(
       context,
       message,
@@ -23,7 +23,7 @@ class MsgtUtil {
   }
 
   /// Warning toast
-  static void showWarning(BuildContext context, String message) {
+  static Future<void> showWarning(BuildContext context, String message) async {
     _showFlushbar(
       context,
       message,
@@ -33,13 +33,13 @@ class MsgtUtil {
   }
 
   /// Private helper
-  static void _showFlushbar(
+  static Future<void> _showFlushbar(
       BuildContext context,
       String message, {
         required Color backgroundColor,
         required IconData icon,
-      }) {
-    Flushbar(
+      }) async {
+    await Flushbar(
       message: message,
       icon: Icon(
         icon,

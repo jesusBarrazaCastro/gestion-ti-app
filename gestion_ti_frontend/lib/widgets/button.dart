@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app_theme.dart';
+
 class Button extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
@@ -8,7 +10,7 @@ class Button extends StatelessWidget {
   final double? width;
   final double? height;
   final BorderRadius? borderRadius;
-  final Icon? icon;
+  final IconData? icon;
 
   const Button({
     Key? key,
@@ -29,17 +31,17 @@ class Button extends StatelessWidget {
       height: height,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor ?? Theme.of(context).primaryColor,
+          backgroundColor: backgroundColor ?? AppTheme.light.primary,
           shape: RoundedRectangleBorder(
             borderRadius: borderRadius ?? BorderRadius.circular(8.0),
           ),
+          surfaceTintColor: Colors.white
         ),
         onPressed: onPressed,
         child: Row(
           children: [
             if(icon != null)...[
-              icon!,
-              const SizedBox(width: 10,)
+              Icon(icon!, color: Colors.white,),
             ],
             Expanded(
               child: Text(

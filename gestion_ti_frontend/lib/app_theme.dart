@@ -93,14 +93,14 @@ class AppTheme extends ThemeExtension<AppTheme> {
 
   // --- Presets ---
   static AppTheme light = AppTheme(
-    primary: Colors.deepPurple,
-    secondary: Colors.amber,
+    primary: Colors.indigo,
+    secondary: Colors.blueGrey,
     background: Colors.white,
     surface: Colors.grey[100]!,
     success: Colors.green,
     warning: Colors.orange,
     error: Colors.red,
-    title1: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+    title1: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
     title2: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
     body: const TextStyle(fontSize: 16),
     caption: const TextStyle(fontSize: 14, color: Colors.grey),
@@ -109,7 +109,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
   );
 
   static AppTheme dark = AppTheme(
-    primary: Colors.deepPurple,
+    primary: Colors.indigo,
     secondary: Colors.teal,
     background: Colors.black,
     surface: Colors.grey[850]!,

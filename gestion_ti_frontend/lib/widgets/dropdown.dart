@@ -40,7 +40,7 @@ class Dropdown<T> extends StatelessWidget {
         if (labelText != null)
           Text(
             labelText!,
-            style: labelStyle ?? const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: labelStyle ?? const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
           ),
         const SizedBox(height: 8),  // Space between label and dropdown
         SizedBox(
@@ -51,7 +51,7 @@ class Dropdown<T> extends StatelessWidget {
               color: backgroundColor ?? Colors.white,
               borderRadius: borderRadius ?? BorderRadius.circular(8.0),
               border: Border.all(
-                color: borderColor ?? Theme.of(context).primaryColor,
+                color: borderColor ?? Colors.grey,
                 width: borderWidth,
               ),
             ),

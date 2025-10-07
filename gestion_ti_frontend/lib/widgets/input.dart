@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../app_theme.dart';
+
 class Input extends FormField<String> {
   final String? hintText;
   final TextEditingController controller;
@@ -61,7 +63,7 @@ class Input extends FormField<String> {
             Text(
               labelText!,
               style: labelStyle ??
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
             ),
           const SizedBox(height: 8),
           SizedBox(
@@ -74,7 +76,7 @@ class Input extends FormField<String> {
               enabled: enabled,
               maxLines: maxLines,
               textAlign: textAlign ?? TextAlign.start,
-              style: textStyle ?? const TextStyle(color: Colors.black),
+              style: textStyle ?? const TextStyle(color: Colors.black, fontSize: 13),
               inputFormatters: inputFormatters,
               decoration: InputDecoration(
                 hintText: hintText ?? '',
@@ -88,7 +90,7 @@ class Input extends FormField<String> {
                   borderSide: BorderSide(
                     color: state.hasError
                         ? Colors.red
-                        : borderColor ?? Theme.of(state.context).primaryColor,
+                        : borderColor ?? Colors.grey,
                     width: borderWidth,
                   ),
                 ),
@@ -97,7 +99,7 @@ class Input extends FormField<String> {
                   borderSide: BorderSide(
                     color: state.hasError
                         ? Colors.red
-                        : borderColor ?? Theme.of(state.context).primaryColor,
+                        : borderColor ?? Colors.grey,
                     width: borderWidth,
                   ),
                 ),
@@ -106,7 +108,7 @@ class Input extends FormField<String> {
                   borderSide: BorderSide(
                     color: state.hasError
                         ? Colors.red
-                        : borderColor ?? Theme.of(state.context).primaryColor,
+                        : borderColor ?? AppTheme.light.primary,
                     width: borderWidth,
                   ),
                 ),

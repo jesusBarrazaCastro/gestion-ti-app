@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:gestion_ti_frontend/screens/private/base_screen.dart';
 import 'package:gestion_ti_frontend/screens/private/home.dart';
+import 'package:gestion_ti_frontend/screens/private/personas.dart';
 import 'package:gestion_ti_frontend/screens/public/login.dart';
 import 'package:gestion_ti_frontend/screens/public/not_found.dart';
 import 'package:gestion_ti_frontend/widgets/appbar.dart';
@@ -37,7 +38,7 @@ class MyApp extends StatelessWidget {
       title: 'Restro',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         iconTheme: const IconThemeData(color: Colors.white),
         useMaterial3: true,
       ),
@@ -86,9 +87,18 @@ class MyApp extends StatelessWidget {
           );
         },
       ),
+      GoRoute(
+        path: '/users',
+        builder: (context, state) {
+          return MainLayout(
+            child: Personas(),
+          );
+        },
+      ),
     ],
     errorPageBuilder: (context, state) => const MaterialPage(
       child: MainLayout(child: NotFound()),
+      
     ),
   );
 
@@ -164,15 +174,26 @@ class MainLayout extends StatelessWidget {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.people),
+              title: const Text('Usuarios'),
+              onTap: () {
+                navigateWithPersistence(context, '/users');
+                Navigator.of(context).pop();
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.settings),
-              title: const Text('Configuración'),
+              title: const Text('Configuraciones'),
               onTap: () {
               },
             ),
           ],
         ),
       ),
-      body: child,
+      body: Padding(
+        padding: const EdgeInsets.all(10.0),
+        child: child,
+      ),
     );
   }
 }
