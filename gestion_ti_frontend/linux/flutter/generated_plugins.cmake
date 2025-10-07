@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   gtk
   modal_progress_hud_nsn
+  rive_common
   url_launcher_linux
 )
 

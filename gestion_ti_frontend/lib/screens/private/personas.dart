@@ -57,6 +57,7 @@ class _Personas extends State<Personas> {
       child: PersonaDetail(personaId: personaId),
       title: 'Datos del usuario'
     );
+    _getData();
   }
 
   Widget _buildPersonaHeader() {

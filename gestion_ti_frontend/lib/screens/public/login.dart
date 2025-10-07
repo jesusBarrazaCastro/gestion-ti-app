@@ -85,49 +85,56 @@ class _LoginState extends State<Login> {
         inAsyncCall: _isLoading,
         color: Colors.black,
         progressIndicator: const CircularProgressIndicator(),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Row(
+        child: Row(
+          children: [
+            const Spacer(flex: 2,),
+            Expanded(
+              flex: 15,
+              child: Form(
+                key: _formKey,
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      'Iniciar sesión',
-                      style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
+                    const SizedBox(height: 20,),
+                    Input(
+                      width: 300,
+                      controller: _userController,
+                      required: true,
                     ),
+                    const SizedBox(height: 10,),
+                    Input(
+                      width: 300,
+                      labelText: 'Contraseña',
+                      controller: _passController,
+                      isPassword: true,
+                      required: true,
+                    ),
+                    const SizedBox(height: 10,),
+                    Button(
+                      text: 'Iniciar sesión',
+                      width: 300,
+                      onPressed: _login
+                    )
                   ],
                 ),
-                const SizedBox(height: 20,),
-                Input(
-                  width: 300,
-                  labelText: 'E-mail',
-                  controller: _userController,
-                  required: true,
-                ),
-                const SizedBox(height: 10,),
-                Input(
-                  width: 300,
-                  labelText: 'Contraseña',
-                  controller: _passController,
-                  isPassword: true,
-                  required: true,
-                ),
-                const SizedBox(height: 10,),
-                Button(
-                  text: 'Iniciar sesión',
-                  width: 300,
-                  onPressed: _login
-                )
-              ],
+              ),
             ),
-          ),
+            Expanded(
+              flex: 4,
+              child: Container(
+                color: Colors.indigo,
+
+              ),
+            ),
+            Expanded(
+              flex: 1,
+              child: Container(
+                color: Colors.white,
+
+              ),
+            )
+          ],
         )
       ),
     );
