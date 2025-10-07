@@ -99,6 +99,7 @@ class _LoginState extends State<Login> {
                     const SizedBox(height: 20,),
                     Input(
                       width: 300,
+                      labelText: 'E-mail',
                       controller: _userController,
                       required: true,
                     ),
