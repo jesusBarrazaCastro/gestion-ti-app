@@ -16,6 +16,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
   final TextStyle title1;
   final TextStyle title2;
   final TextStyle body;
+  final TextStyle bodyBold;
   final TextStyle caption;
 
   // Spacing & Radius
@@ -35,7 +36,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
     required this.body,
     required this.caption,
     required this.spacing,
-    required this.radius,
+    required this.radius, required this.bodyBold,
   });
 
   @override
@@ -50,6 +51,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
     TextStyle? title1,
     TextStyle? title2,
     TextStyle? body,
+    TextStyle? bodyBold,
     TextStyle? caption,
     double? spacing,
     double? radius,
@@ -65,6 +67,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
       title1: title1 ?? this.title1,
       title2: title2 ?? this.title2,
       body: body ?? this.body,
+      bodyBold: bodyBold ?? this.bodyBold,
       caption: caption ?? this.caption,
       spacing: spacing ?? this.spacing,
       radius: radius ?? this.radius,
@@ -85,6 +88,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
       title1: TextStyle.lerp(title1, other.title1, t)!,
       title2: TextStyle.lerp(title2, other.title2, t)!,
       body: TextStyle.lerp(body, other.body, t)!,
+      bodyBold: TextStyle.lerp(body, other.body, t)!,
       caption: TextStyle.lerp(caption, other.caption, t)!,
       spacing: lerpDouble(spacing, other.spacing, t)!,
       radius: lerpDouble(radius, other.radius, t)!,
@@ -103,6 +107,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
     title1: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
     title2: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
     body: const TextStyle(fontSize: 16),
+    bodyBold: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
     caption: const TextStyle(fontSize: 14, color: Colors.grey),
     spacing: 8,
     radius: 12,
@@ -119,6 +124,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
     title1: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
     title2: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white70),
     body: const TextStyle(fontSize: 16, color: Colors.white),
+    bodyBold: const TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
     caption: const TextStyle(fontSize: 14, color: Colors.grey),
     spacing: 8,
     radius: 12,

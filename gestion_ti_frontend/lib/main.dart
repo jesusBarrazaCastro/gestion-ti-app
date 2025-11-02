@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:gestion_ti_frontend/app_theme.dart';
 import 'package:gestion_ti_frontend/screens/private/base_screen.dart';
+import 'package:gestion_ti_frontend/screens/private/configuracion_general.dart';
 import 'package:gestion_ti_frontend/screens/private/departamentos.dart';
+import 'package:gestion_ti_frontend/screens/private/elementos_configuracion.dart';
 import 'package:gestion_ti_frontend/screens/private/home.dart';
 import 'package:gestion_ti_frontend/screens/private/personas.dart';
 import 'package:gestion_ti_frontend/screens/public/login.dart';
@@ -110,7 +112,15 @@ class MyApp extends StatelessWidget {
         path: '/configuraciones',
         builder: (context, state) {
           return MainLayout(
-            child: Departamentos(),
+            child: ConfiguracionGeneral(),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/elementos_configuracion',
+        builder: (context, state) {
+          return MainLayout(
+            child: ElementosConfiguracion(),
           );
         },
       ),
@@ -195,96 +205,117 @@ class MainLayout extends StatelessWidget {
           drawer: Drawer(
             child: Container(
               color: Colors.white,
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: <Widget>[
-                  DrawerHeader(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF1A237E), Color(0xFF283593)], // navy shades
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+              child: Builder(
+                builder: (context) {
+                  Widget buildMenuItem({
+                    required String label,
+                    required String path,
+                    required IconData icon,
+                  }) {
+                    final currentPath = GoRouterState.of(context).uri.toString();
+                    final bool isActive = currentPath == path;
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isActive ? Colors.indigo.withOpacity(0.15) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: <Widget>[
-                        const CircleAvatar(
-                          backgroundColor: Colors.grey,
-                          radius: 34,
-                          child: Icon(Icons.person, color: Colors.white, size: 34),
-                        ),
-                        Text(
-                          userName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.5,
+                      child: ListTile(
+                        leading: Icon(icon,
+                            color: isActive ? Colors.indigo : Colors.indigo.shade400,
+                            size: 28),
+                        title: Text(
+                          label,
+                          style: AppTheme.light.body.copyWith(
+                            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                            color: isActive ? Colors.indigo.shade800 : Colors.black87,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          userRole,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 40,),
-                  // Inicio
-                  ListTile(
-                    leading: const Icon(Icons.home, color: Colors.indigo, size: iconSize),
-                    title: Text('Inicio', style: AppTheme.light.body),
-                    onTap: () {
-                      navigateWithPersistence(context, '/home');
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.computer_outlined, color: Colors.indigo, size: iconSize),
-                    title:  Text('Gestión de configuraciones', style: AppTheme.light.body),
-                    onTap: () {
-                      navigateWithPersistence(context, '/configuraciones');
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                  // Ubicaciones
-                  ListTile(
-                    leading: const Icon(Icons.apartment, color: Colors.indigo, size: iconSize),
-                    title:  Text('Ubicaciones', style: AppTheme.light.body),
-                    onTap: () {
-                      navigateWithPersistence(context, '/departamentos');
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                  // Usuarios
-                  ListTile(
-                    leading: const Icon(Icons.people, color: Colors.indigo, size: iconSize),
-                    title:  Text('Usuarios', style: AppTheme.light.body),
-                    onTap: () {
-                      navigateWithPersistence(context, '/users');
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.settings, color: Colors.indigo, size: iconSize), // Usa el color principal aquí
-                    title:  Text('Configuraciones', style: AppTheme.light.body),
-                    onTap: () {
-                      Navigator.of(context).pop(); // Cierra el drawer aunque no haya navegación
-                    },
-                  ),
+                        onTap: () {
+                          if (!isActive) {
+                            navigateWithPersistence(context, path);
+                          }
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    );
+                  }
 
-                  // Un poco de espacio extra al final
-                  const SizedBox(height: 20),
-                ],
+                  return ListView(
+                    padding: EdgeInsets.zero,
+                    children: <Widget>[
+                      DrawerHeader(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF1A237E), Color(0xFF283593)], // navy shades
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: <Widget>[
+                            const CircleAvatar(
+                              backgroundColor: Colors.grey,
+                              radius: 34,
+                              child: Icon(Icons.person, color: Colors.white, size: 34),
+                            ),
+                            Text(
+                              userName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              userRole,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+
+                      // Menu items
+                      buildMenuItem(
+                        label: 'Inicio',
+                        path: '/home',
+                        icon: Icons.home,
+                      ),
+                      buildMenuItem(
+                        label: 'Gestión de configuraciones',
+                        path: '/elementos_configuracion',
+                        icon: Icons.computer_outlined,
+                      ),
+                      buildMenuItem(
+                        label: 'Ubicaciones',
+                        path: '/departamentos',
+                        icon: Icons.apartment,
+                      ),
+                      buildMenuItem(
+                        label: 'Usuarios',
+                        path: '/users',
+                        icon: Icons.people,
+                      ),
+                      buildMenuItem(
+                        label: 'Configuración general',
+                        path: '/configuraciones',
+                        icon: Icons.settings,
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ),
+
           body: Padding(
             padding: const EdgeInsets.all(10.0),
             child: child,

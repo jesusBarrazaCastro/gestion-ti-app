@@ -391,7 +391,7 @@ class _DepartamentosState extends State<Departamentos> {
                     ],
                   ),
                   selected: isSelected,
-                  selectedTileColor: Colors.indigo.withOpacity(0.1),
+                  selectedTileColor: Colors.indigo.withOpacity(0.2),
                   onTap: () => onTap(item),
                 );
               },
