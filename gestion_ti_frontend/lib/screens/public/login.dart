@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_ti_frontend/app_theme.dart';
 import 'package:gestion_ti_frontend/utilities/msg_util.dart';
 import 'package:go_router/go_router.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
@@ -85,55 +86,57 @@ class _LoginState extends State<Login> {
         inAsyncCall: _isLoading,
         color: Colors.black,
         progressIndicator: const CircularProgressIndicator(),
-        child: Row(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            const Spacer(flex: 2,),
             Expanded(
-              flex: 15,
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 20,),
-                    Input(
-                      width: 300,
-                      labelText: 'E-mail',
-                      controller: _userController,
-                      required: true,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Expanded(flex: 4, child: Image.asset('assets/images/logo.png', scale: .9)),
+                  Expanded(
+                    flex: 6,
+                    child: Container(
+                      color: AppTheme.light.primary.withOpacity(0.1),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Text('Iniciar Sesión', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 30),),
+                            const SizedBox(height: 25,),
+                            Input(
+                              width: 300,
+                              labelText: 'E-mail',
+                              controller: _userController,
+                              required: true,
+                            ),
+                            const SizedBox(height: 10,),
+                            Input(
+                              width: 300,
+                              labelText: 'Contraseña',
+                              controller: _passController,
+                              isPassword: true,
+                              required: true,
+                            ),
+                            const SizedBox(height: 10,),
+                            Button(
+                              text: 'Iniciar sesión',
+                              width: 300,
+                              onPressed: _login
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 10,),
-                    Input(
-                      width: 300,
-                      labelText: 'Contraseña',
-                      controller: _passController,
-                      isPassword: true,
-                      required: true,
-                    ),
-                    const SizedBox(height: 10,),
-                    Button(
-                      text: 'Iniciar sesión',
-                      width: 300,
-                      onPressed: _login
-                    )
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-            Expanded(
-              flex: 4,
-              child: Container(
-                color: Colors.indigo,
-
-              ),
-            ),
-            Expanded(
-              flex: 1,
-              child: Container(
-                color: Colors.white,
-
-              ),
+            Container(
+              height: 100,
+              color: AppTheme.light.primary,
             )
           ],
         )

@@ -105,7 +105,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
     warning: Colors.orange,
     error: Colors.red,
     title1: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-    title2: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+    title2: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
     body: const TextStyle(fontSize: 16),
     bodyBold: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
     caption: const TextStyle(fontSize: 14, color: Colors.grey),

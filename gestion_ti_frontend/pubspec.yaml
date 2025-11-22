@@ -69,6 +69,7 @@ flutter:
 
   assets:
     - assets/awesome_dialog/rive/
+    - assets/images/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
