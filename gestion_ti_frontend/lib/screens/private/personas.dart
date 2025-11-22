@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:gestion_ti_frontend/screens/private/persona_detail.dart';
 import 'package:gestion_ti_frontend/utilities/constants.dart';
@@ -7,6 +9,7 @@ import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app_theme.dart';
+import '../../utilities/debouncer.dart';
 import '../../utilities/dialog_util.dart';
 import '../../widgets/button.dart';
 import '../../widgets/input.dart';
@@ -25,6 +28,7 @@ class _Personas extends State<Personas> {
   final TextEditingController _searchController = TextEditingController();
   List<dynamic> _personas = [];
 
+  final _debouncer = Debouncer(milliseconds: 500);
 
   @override
   void initState() {
@@ -32,14 +36,36 @@ class _Personas extends State<Personas> {
     super.initState();
   }
 
+  @override
+  void dispose() {
+    _debouncer.dispose();
+    super.dispose();
+  }
+
   _getData() async{
     try{
       setState(() {_isLoading = true;});
-      final personaResponse = await supabase
+
+      final searchTerm = _searchController.text.trim().toLowerCase();
+
+      var builder = supabase
           .from('persona')
           .select('*')
-          .order('apellido_paterno', ascending: true);
-      if(personaResponse.isEmpty) return;
+          .eq('registro_estado', true);
+      if (searchTerm.isNotEmpty) {
+        builder = builder.or(
+            'nombre.ilike.%$searchTerm%,'
+                'apellido_paterno.ilike.%$searchTerm%,'
+                'correo_electronico.ilike.%$searchTerm%'
+        );
+      }
+      final personaResponse = await builder.order('apellido_paterno', ascending: true);
+
+      if(personaResponse.isEmpty) {
+        _personas = [];
+        return;
+      }
+
       _personas = personaResponse;
     } catch(e){
       MsgtUtil.showError(context, e.toString());
@@ -58,6 +84,30 @@ class _Personas extends State<Personas> {
       title: 'Datos del usuario'
     );
     _getData();
+  }
+
+  _disablePersona({required String personaId}) async{
+    try {
+      setState(() {_isLoading = true;});
+      final response = await supabase
+          .from('persona')
+          .update({'registro_estado': false,})
+          .eq('id', personaId);
+
+      MsgtUtil.showSuccess(context, 'Cambios guardados exitosamente.');
+    } catch (e) {
+      MsgtUtil.showError(context, 'Error al guardar los cambios: ${e.toString()}');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  _onChangeSearch(var p0) async{
+    _debouncer.run(() {
+      _getData();
+    });
   }
 
   Widget _buildPersonaHeader() {
@@ -114,8 +164,6 @@ class _Personas extends State<Personas> {
     );
   }
 
-
-
   Widget _buildPersonaCard(Map<String, dynamic> persona) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 2),
@@ -164,7 +212,7 @@ class _Personas extends State<Personas> {
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.black),
               onPressed: () {
-                // TODO: Implement delete persona
+                _disablePersona(personaId: persona['id']);
               },
             ),
           ],
@@ -200,6 +248,17 @@ class _Personas extends State<Personas> {
                  ],
                ),
               const SizedBox(height: 20),
+              Row(
+                children: [
+                  Input(
+                    width: 400,
+                    controller: _searchController,
+                    labelText: 'Buscar',
+                    onChanged: _onChangeSearch,
+                  )
+                ],
+              ),
+              const SizedBox(height: 10),
               _buildPersonaHeader(),
               Expanded(
                 child: _personas.isEmpty

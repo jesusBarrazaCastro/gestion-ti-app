@@ -16,6 +16,10 @@ class ElementosConfiguracion extends StatefulWidget {
 
 class _ElementosConfiguracion extends State<ElementosConfiguracion> {
   final SupabaseClient supabase = Supabase.instance.client;
+
+
+
+
   bool _isLoading = false;
   int? hoverIndex;
 
