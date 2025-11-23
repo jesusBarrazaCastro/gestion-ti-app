@@ -140,10 +140,9 @@ class _SimpleTableState extends State<SimpleTable> {
                             )
                                 : Text(item['descripcion'] ?? '', style: AppTheme.light.body),
                           ),
-                          const Spacer(),
                           // Action Buttons
                           SizedBox(
-                            width: 130,
+                            width: 90,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [

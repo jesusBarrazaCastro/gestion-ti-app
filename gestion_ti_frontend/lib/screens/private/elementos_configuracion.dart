@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_ti_frontend/screens/private/departamentos.dart';
 import 'package:gestion_ti_frontend/utilities/constants.dart';
+import 'package:gestion_ti_frontend/utilities/dialog_util.dart';
 import 'package:gestion_ti_frontend/utilities/msg_util.dart';
+import 'package:gestion_ti_frontend/widgets/location_selector.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app_theme.dart';
+import '../../utilities/debouncer.dart';
 import '../../widgets/button.dart';
+import '../../widgets/dropdown.dart';
+import '../../widgets/input.dart';
 
 class ElementosConfiguracion extends StatefulWidget {
   const ElementosConfiguracion({super.key});
@@ -16,29 +22,87 @@ class ElementosConfiguracion extends StatefulWidget {
 
 class _ElementosConfiguracion extends State<ElementosConfiguracion> {
   final SupabaseClient supabase = Supabase.instance.client;
+  final TextEditingController _searchController = TextEditingController();
+  late final LocationController _locationController;
 
+  dynamic _tipoElementoSelected;
+  List<Map<String, dynamic>> _tipoElementoItems = [];
 
+  dynamic _estadoSelected;
+  List<Map<String, dynamic>> _estadoItems = [];
 
-
+  final _debouncer = Debouncer(milliseconds: 500);
   bool _isLoading = false;
   int? hoverIndex;
+
 
   List<dynamic> _elementos = [];
 
   @override
   void initState() {
+    _locationController = LocationController(
+        initialLocation: {
+          'departamento_id': null,
+          'departamento_nombre': 'Todos los departamentos',
+          'edificio_id': null,
+          'edificio_nombre': 'Todos los edificios',
+          'ubicacion_id': null,
+          'ubicacion_nombre': 'Todas las ubicaciones'
+        }
+    );
+    _getEstadosItems();
+    _getTiposElementos();
     _getData();
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _debouncer.dispose();
+    super.dispose();
   }
 
   _getData() async {
     try {
       setState(() => _isLoading = true);
 
-      final response = await supabase
-          .from('elemento_configuracion')
-          .select('*')
-          .order('clave', ascending: true);
+      // 1. Base Query
+      var query = supabase.from('elemento_configuracion').select('*');
+
+      // 2. Filtro por Tipo de Elemento
+      if (_tipoElementoSelected != null && _tipoElementoSelected['clave'] != 'Todos') {
+        query = query.eq('elemento_tipo', _tipoElementoSelected['clave']);
+      }
+
+      // 3. Filtro por Estado
+      if (_estadoSelected != null && _estadoSelected['clave'] != 'Todos') {
+        query = query.eq('estado', _estadoSelected['clave']);
+      }
+
+      // 4. Filtro por Ubicación (usando la más específica disponible)
+      final location = _locationController.getLocation();
+      final specificLocationId = location?['ubicacion_id'];
+      final specificEdificioId = location?['edificio_id'];
+      final specificDepartamentoId = location?['departamento_id'];
+
+      if (specificLocationId != null) {
+        query = query.eq('ubicacion_lugar_id', specificLocationId);
+      } else if (specificEdificioId != null) {
+        query = query.eq('edificio_id', specificEdificioId);
+      } else if (specificDepartamentoId != null) {
+        query = query.eq('departamento_id', specificDepartamentoId);
+      }
+
+      // 5. Filtro por Búsqueda (Texto)
+      final searchText = _searchController.text.trim();
+      if (searchText.isNotEmpty) {
+        final filterValue = '%$searchText%';
+        query = query.or(
+            'clave.ilike.$filterValue,descripcion.ilike.$filterValue,numero_serie.ilike.$filterValue'
+        );
+      }
+
+      final response = await query.order('clave', ascending: true);
 
       _elementos = response;
     } catch (e) {
@@ -48,9 +112,70 @@ class _ElementosConfiguracion extends State<ElementosConfiguracion> {
     }
   }
 
+  _getTiposElementos() async{
+    try{
+      setState(() {_isLoading = true;});
+      final response = await supabase
+          .from('configuracion_general')
+          .select('elemento, valores')
+          .eq('modulo', 'gestion_configuraciones');
+      if(response.isEmpty) return;
+
+      List<Map<String, dynamic>> data = List<Map<String, dynamic>>.from(response);
+
+      final elementoConfig = data.firstWhere(
+            (element) => element['elemento'] == 'elemento_configuracion_tipo',
+        orElse: () => {},
+      );
+
+      if (elementoConfig.isNotEmpty && elementoConfig['valores'] is List) {
+        _tipoElementoItems = List<Map<String, dynamic>>.from(elementoConfig['valores'] as List);
+        _tipoElementoItems.insert(0, {'clave': 'Todos'});
+        _tipoElementoSelected = _tipoElementoItems.first;
+      } else {
+        _tipoElementoItems = [];
+      }
+
+    } catch(e){
+      MsgtUtil.showError(context, e.toString());
+      return;
+    } finally {
+      setState(() {_isLoading = false;});
+    }
+  }
+
+  _getEstadosItems() {
+    _estadoItems = [
+      {'clave': 'Todos'},
+      {'clave': 'Activo'},
+      {'clave': 'En reparación'},
+      {'clave': 'Fuera de servicio'},
+    ];
+    _estadoSelected = _estadoItems.first;
+  }
+
   _openElemento({required String? elementoID}) async {
-    // Open dialog or details screen
     _getData();
+  }
+
+  List<DropdownMenuItem<dynamic>> _buildDropdownItems(List<dynamic> data) {
+    return data.map<DropdownMenuItem<dynamic>>((item) {
+      final String clave = item['clave'] ?? 'Sin Nombre';
+      return DropdownMenuItem<dynamic>(
+        value: item,
+        child: Text(clave),
+      );
+    }).toList();
+  }
+
+  List<DropdownMenuItem<dynamic>> _buildEstadoDropdownItems(List<dynamic> data) {
+    return data.map<DropdownMenuItem<dynamic>>((item) {
+      final String clave = item['clave'] ?? 'Sin Nombre';
+      return DropdownMenuItem<dynamic>(
+        value: item,
+        child: _buildEstadoChip(clave),
+      );
+    }).toList();
   }
 
   // ---------------------------
@@ -70,6 +195,10 @@ class _ElementosConfiguracion extends State<ElementosConfiguracion> {
         bg = Colors.amber.shade200;
         textColor = Colors.amber.shade800;
         break;
+      case 'fuera de servicio':
+        bg = Colors.red.shade100;
+        textColor = Colors.red.shade800;
+        break;
       default:
         bg = Colors.grey.shade200;
         textColor = Colors.grey.shade700;
@@ -85,6 +214,7 @@ class _ElementosConfiguracion extends State<ElementosConfiguracion> {
       ),
     );
   }
+
 
   // ---------------------------
   // HEADER ROW
@@ -127,39 +257,90 @@ class _ElementosConfiguracion extends State<ElementosConfiguracion> {
       },
       enableFeedback: true,
       splashColor: AppTheme.light.primary.withOpacity(0.1),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
-          color: hoverIndex == i ? AppTheme.light.primary.withOpacity(0.1) : null
-        ),
-        child: Row(
-          children: [
-            _Cell(e['clave'] ?? '', flex: 2, bold: true,),
-            _Cell(e['descripcion'] ?? '', flex: 4),
-            _Cell(e['elemento_tipo'] ?? '-', flex: 3),
-            _Cell(e['marca'] ?? '-', flex: 3),
-            _Cell(e['modelo'] ?? '-', flex: 3),
-            _Cell(e['numero_serie'] ?? '-', flex: 3),
+      child: Ink(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+              color: hoverIndex == i ? AppTheme.light.primary.withOpacity(0.1) : null
+          ),
+          child: Row(
+            children: [
+              _Cell(e['clave'] ?? '', flex: 2, bold: true,),
+              _Cell(e['descripcion'] ?? '', flex: 4),
+              _Cell(e['elemento_tipo'] ?? '-', flex: 3),
+              _Cell(e['marca'] ?? '-', flex: 3),
+              _Cell(e['modelo'] ?? '-', flex: 3),
+              _Cell(e['numero_serie'] ?? '-', flex: 3),
 
-            // Estado chip
-            Expanded(
-              flex: 3,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: _buildEstadoChip(e['estado'] ?? '-'),
+              // Estado chip
+              Expanded(
+                flex: 3,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _buildEstadoChip(e['estado'] ?? '-'),
+                ),
               ),
-            ),
 
-            _Cell(e['ubicacion_lugar_id']?.toString() ?? '-', flex: 3),
+              _Cell(e['ubicacion_lugar_id']?.toString() ?? '-', flex: 3),
 
-            _Cell(
-              (e['registro_fecha'] ?? '').toString().split('T')[0],
-              flex: 3,
-            ),
-          ],
+              _Cell(
+                (e['registro_fecha'] ?? '').toString().split('T')[0],
+                flex: 3,
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLocationFilter(){
+    return LocationFilterWidget(
+      controller: _locationController,
+      onLocationChanged: () {
+        _getData();
+      },
+    );
+  }
+
+  Widget _buildFiltersRow(){
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Input(
+          width: 300,
+          controller: _searchController,
+          labelText: 'Buscar',
+          onChanged: (p0) {
+            _debouncer.run(_getData);
+          },
+        ),
+        const SizedBox(width: 10,),
+        Dropdown(
+          width: 200,
+          labelText: 'Tipo de elemento',
+          value: _tipoElementoSelected,
+          items: _buildDropdownItems(_tipoElementoItems),
+          onChanged: (value) {
+            _tipoElementoSelected = value;
+            _getData();
+          },
+        ),
+        const SizedBox(width: 10,),
+        Dropdown(
+          width: 200,
+          labelText: 'Estado',
+          value: _estadoSelected,
+          items: _buildEstadoDropdownItems(_estadoItems),
+          onChanged: (value) {
+            _estadoSelected = value;
+            _getData();
+          },
+        ),
+        const SizedBox(width: 10,),
+        _buildLocationFilter(),
+      ],
     );
   }
 
@@ -190,10 +371,9 @@ class _ElementosConfiguracion extends State<ElementosConfiguracion> {
                 ),
               ],
             ),
-
             const SizedBox(height: 20),
-
-            // LIST
+            _buildFiltersRow(),
+            const SizedBox(height: 10,),
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
