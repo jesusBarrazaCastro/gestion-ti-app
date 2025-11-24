@@ -19,7 +19,7 @@ class DialogUtil {
       barrierDismissible: barrierDismissible,
       builder: (context) {
         return Dialog(
-          backgroundColor: backgroundColor,
+          //backgroundColor: backgroundColor,
           shape: RoundedRectangleBorder(borderRadius: borderRadius),
           child: Container(
             decoration: BoxDecoration(color: backgroundColor, borderRadius: borderRadius),
@@ -42,7 +42,7 @@ class DialogUtil {
                   ],
                 ),
                 const Divider(),
-                Expanded(child: child)
+                Flexible(child: child)
               ],
             )
           ),

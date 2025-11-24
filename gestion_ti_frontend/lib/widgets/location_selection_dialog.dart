@@ -25,8 +25,9 @@ const LocationData _allOption = {
 
 class LocationSelectionDialog extends StatefulWidget {
   final LocationData? initialLocation;
+  final bool? isSelection;
 
-  const LocationSelectionDialog({super.key, this.initialLocation});
+  const LocationSelectionDialog({super.key, this.initialLocation, this.isSelection = false});
 
   @override
   State<LocationSelectionDialog> createState() => _LocationSelectionDialogState();
@@ -108,10 +109,16 @@ class _LocationSelectionDialogState extends State<LocationSelectionDialog> {
     } else {
       // Si no hay precarga, selecciona "Todos" por defecto en el primer dropdown
       if (_departamentoItems.isNotEmpty) {
-        _departamentoSelected = _departamentoItems.firstWhere(
-              (item) => item['id'] == null,
-          //orElse: () => null as LocationData?,
-        );
+        if (!(widget.isSelection ?? false)) {
+          _departamentoSelected = _departamentoItems.firstWhere(
+                (item) => item['id'] == null,
+            //orElse: () => null as LocationData?,
+          );
+        } else {
+          // Si la selección es obligatoria, aseguramos que el valor inicial sea nulo
+          _departamentoSelected = null;
+        }
+
         // Carga Edificios para la opción 'Todos' si existe la opción
         if (_departamentoSelected != null) {
           await _loadEdificios(_departamentoSelected!['id'] as int?);
@@ -133,7 +140,8 @@ class _LocationSelectionDialogState extends State<LocationSelectionDialog> {
           .order('nombre', ascending: true);
 
       final List<LocationData> loadedItems = [
-        _allOption.copyWith({'nombre': _allOption['departamento_nombre']})
+        if (!(widget.isSelection ?? false)) // <--- ADICIÓN DE LÓGICA
+          _allOption.copyWith({'nombre': _allOption['departamento_nombre']})
       ];
       loadedItems.addAll(List<LocationData>.from(data));
       _departamentoItems = loadedItems;
@@ -148,10 +156,19 @@ class _LocationSelectionDialogState extends State<LocationSelectionDialog> {
   Future<void> _loadEdificios(int? departamentoId) async {
     if (departamentoId == null) {
       if (mounted) setState(() {
-        _edificioItems = [_allOption.copyWith({'nombre': _allOption['edificio_nombre']})];
-        _edificioSelected = _edificioItems.first;
-        _ubicacionItems = [_allOption.copyWith({'nombre': _allOption['ubicacion_nombre']})];
-        _ubicacionSelected = _ubicacionItems.first;
+        // --- MODIFICACIÓN DE LÓGICA PARA MANEJAR isSelection ---
+        if (!(widget.isSelection ?? false)) {
+          _edificioItems = [_allOption.copyWith({'nombre': _allOption['edificio_nombre']})];
+          _edificioSelected = _edificioItems.first;
+          _ubicacionItems = [_allOption.copyWith({'nombre': _allOption['ubicacion_nombre']})];
+          _ubicacionSelected = _ubicacionItems.first;
+        } else {
+          _edificioItems = [];
+          _edificioSelected = null;
+          _ubicacionItems = [];
+          _ubicacionSelected = null;
+        }
+        // --- FIN MODIFICACIÓN ---
       });
       return;
     }
@@ -167,7 +184,8 @@ class _LocationSelectionDialogState extends State<LocationSelectionDialog> {
 
       if (mounted) setState(() {
         final List<LocationData> loadedItems = [
-          _allOption.copyWith({'nombre': _allOption['edificio_nombre']})
+          if (!(widget.isSelection ?? false)) // <--- ADICIÓN DE LÓGICA
+            _allOption.copyWith({'nombre': _allOption['edificio_nombre']})
         ];
         loadedItems.addAll(List<LocationData>.from(data));
 
@@ -186,8 +204,15 @@ class _LocationSelectionDialogState extends State<LocationSelectionDialog> {
   Future<void> _loadUbicaciones(int? edificioId) async {
     if (edificioId == null) {
       if (mounted) setState(() {
-        _ubicacionItems = [_allOption.copyWith({'nombre': _allOption['ubicacion_nombre']})];
-        _ubicacionSelected = _ubicacionItems.first;
+        // --- MODIFICACIÓN DE LÓGICA PARA MANEJAR isSelection ---
+        if (!(widget.isSelection ?? false)) {
+          _ubicacionItems = [_allOption.copyWith({'nombre': _allOption['ubicacion_nombre']})];
+          _ubicacionSelected = _ubicacionItems.first;
+        } else {
+          _ubicacionItems = [];
+          _ubicacionSelected = null;
+        }
+        // --- FIN MODIFICACIÓN ---
       });
       return;
     }
@@ -203,7 +228,8 @@ class _LocationSelectionDialogState extends State<LocationSelectionDialog> {
 
       if (mounted) setState(() {
         final List<LocationData> loadedItems = [
-          _allOption.copyWith({'nombre': _allOption['ubicacion_nombre']})
+          if (!(widget.isSelection ?? false)) // <--- ADICIÓN DE LÓGICA
+            _allOption.copyWith({'nombre': _allOption['ubicacion_nombre']})
         ];
         loadedItems.addAll(List<LocationData>.from(data));
 
@@ -257,6 +283,13 @@ class _LocationSelectionDialogState extends State<LocationSelectionDialog> {
       MsgtUtil.showError(context, 'Error de selección. Por favor, intente de nuevo.');
       return;
     }
+
+    // --- ADICIÓN DE LÓGICA (VALIDACIÓN PARA isSelection) ---
+    if ((widget.isSelection ?? false) && _ubicacionSelected!['id'] == null) {
+      MsgtUtil.showError(context, 'Debe seleccionar una ubicación específica cuando la selección es obligatoria.');
+      return;
+    }
+    // --- FIN ADICIÓN DE LÓGICA ---
 
     // Devolver un mapa completo, permitiendo que los IDs sean nulos si se seleccionó "Todos"
     final result = {

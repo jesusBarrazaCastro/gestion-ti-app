@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_ti_frontend/screens/private/departamentos.dart';
+import 'package:gestion_ti_frontend/screens/private/elemento_configuracion_detail.dart';
 import 'package:gestion_ti_frontend/utilities/constants.dart';
 import 'package:gestion_ti_frontend/utilities/dialog_util.dart';
 import 'package:gestion_ti_frontend/utilities/msg_util.dart';
 import 'package:gestion_ti_frontend/widgets/location_selector.dart';
+import 'package:go_router/go_router.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -66,8 +68,11 @@ class _ElementosConfiguracion extends State<ElementosConfiguracion> {
     try {
       setState(() => _isLoading = true);
 
-      // 1. Base Query
-      var query = supabase.from('elemento_configuracion').select('*');
+      final String selectString =
+          '*, '
+          'ubicacion_lugar(id, nombre, edificio(id, nombre, departamento(id, nombre)))' ;
+
+      var query = supabase.from('elemento_configuracion').select(selectString);
 
       // 2. Filtro por Tipo de Elemento
       if (_tipoElementoSelected != null && _tipoElementoSelected['clave'] != 'Todos') {
@@ -144,6 +149,50 @@ class _ElementosConfiguracion extends State<ElementosConfiguracion> {
     }
   }
 
+  String formatLocationString(Map<String, dynamic> elemento) {
+    // 1. Obtener el nodo de la ubicación
+    final ubicacionNode = elemento['ubicacion_lugar'];
+
+    // Si el nodo es nulo o no es un mapa, retorna 'Ubicación no asignada'.
+    if (ubicacionNode == null || ubicacionNode is! Map<String, dynamic>) {
+      return 'Ubicación no asignada';
+    }
+
+    // 2. Extraer los nombres en orden (Departamento > Edificio > Ubicación/Lugar)
+    final List<String> parts = [];
+
+    // Nivel 2: Edificio
+    final edificioNode = ubicacionNode['edificio'];
+
+    if (edificioNode != null && edificioNode is Map<String, dynamic>) {
+      // Nivel 3: Departamento (anidado en Edificio)
+      final departamentoNode = edificioNode['departamento'];
+      if (departamentoNode != null && departamentoNode is Map<String, dynamic> && departamentoNode['nombre'] is String) {
+        parts.add(departamentoNode['nombre'] as String);
+      }
+
+      // Nombre del Edificio
+      if (edificioNode['nombre'] is String) {
+        parts.add(edificioNode['nombre'] as String);
+      }
+    }
+
+    // Nivel 1: Ubicación/Lugar
+    if (ubicacionNode['nombre'] is String) {
+      parts.add(ubicacionNode['nombre'] as String);
+    }
+
+    // 3. Unir las partes con coma y espacio
+    // Si no se pudo obtener ninguna parte, devuelve 'Ubicación no asignada'
+    if (parts.isEmpty) {
+      return 'Ubicación no asignada';
+    }
+
+    // Resultado: "Sistemas, B, 02" (si todo está presente)
+    return parts.join(', ');
+  }
+
+
   _getEstadosItems() {
     _estadoItems = [
       {'clave': 'Todos'},
@@ -154,8 +203,20 @@ class _ElementosConfiguracion extends State<ElementosConfiguracion> {
     _estadoSelected = _estadoItems.first;
   }
 
-  _openElemento({required String? elementoID}) async {
-    _getData();
+  _openElemento({required int? elementoID}) async {
+    try{
+      final String path;
+      if (elementoID != null) {
+        path = '/elementos_configuracion_form/${elementoID}';
+      } else {
+        path = '/elementos_configuracion_form/nuevo';
+      }
+      context.go(path);
+    } catch(e){
+      MsgtUtil.showError(context, e.toString());
+    } finally{
+      _getData();
+    }
   }
 
   List<DropdownMenuItem<dynamic>> _buildDropdownItems(List<dynamic> data) {
@@ -228,14 +289,14 @@ class _ElementosConfiguracion extends State<ElementosConfiguracion> {
       ),
       child: Row(
         children: const [
-          _HeaderCell('CLAVE', flex: 2),
-          _HeaderCell('DESCRIPCIÓN', flex: 4),
-          _HeaderCell('TIPO', flex: 3),
+          _HeaderCell('CLAVE', flex: 3),
+          _HeaderCell('DESCRIPCIÓN', flex: 5),
+          _HeaderCell('TIPO', flex: 2),
           _HeaderCell('MARCA', flex: 3),
           _HeaderCell('MODELO', flex: 3),
           _HeaderCell('N° SERIE', flex: 3),
           _HeaderCell('ESTADO', flex: 3),
-          _HeaderCell('UBICACIÓN', flex: 3),
+          _HeaderCell('UBICACIÓN', flex: 4),
           _HeaderCell('FECHA REGISTRO', flex: 3),
         ],
       ),
@@ -252,8 +313,8 @@ class _ElementosConfiguracion extends State<ElementosConfiguracion> {
           hoverIndex = value ? i : null;
         });
       },
-      onTap: () => () {
-
+      onTap: () {
+        _openElemento(elementoID: e['id']);
       },
       enableFeedback: true,
       splashColor: AppTheme.light.primary.withOpacity(0.1),
@@ -266,9 +327,9 @@ class _ElementosConfiguracion extends State<ElementosConfiguracion> {
           ),
           child: Row(
             children: [
-              _Cell(e['clave'] ?? '', flex: 2, bold: true,),
-              _Cell(e['descripcion'] ?? '', flex: 4),
-              _Cell(e['elemento_tipo'] ?? '-', flex: 3),
+              _Cell(e['clave'] ?? '', flex: 3, bold: true,),
+              _Cell(e['descripcion'] ?? '', flex: 5),
+              _Cell(e['elemento_tipo'] ?? '-', flex: 2),
               _Cell(e['marca'] ?? '-', flex: 3),
               _Cell(e['modelo'] ?? '-', flex: 3),
               _Cell(e['numero_serie'] ?? '-', flex: 3),
@@ -282,7 +343,7 @@ class _ElementosConfiguracion extends State<ElementosConfiguracion> {
                 ),
               ),
 
-              _Cell(e['ubicacion_lugar_id']?.toString() ?? '-', flex: 3),
+              _Cell(formatLocationString(e), flex: 4),
 
               _Cell(
                 (e['registro_fecha'] ?? '').toString().split('T')[0],
@@ -339,7 +400,7 @@ class _ElementosConfiguracion extends State<ElementosConfiguracion> {
           },
         ),
         const SizedBox(width: 10,),
-        _buildLocationFilter(),
+        Expanded(child: _buildLocationFilter()),
       ],
     );
   }

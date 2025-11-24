@@ -26,11 +26,12 @@ class LocationController {
 class LocationFilterWidget extends StatefulWidget {
   final LocationController controller;
   final VoidCallback onLocationChanged;
+  final bool? isSelection;
 
   const LocationFilterWidget({
     super.key,
     required this.controller,
-    required this.onLocationChanged,
+    required this.onLocationChanged, this.isSelection = false,
   });
 
   @override
@@ -46,7 +47,7 @@ class _LocationFilterWidgetState extends State<LocationFilterWidget> {
       width: 500,
       title: 'Seleccionar ubicación',
       showCloseButton: true,
-      child: LocationSelectionDialog(initialLocation: widget.controller.getLocation(),)
+      child: LocationSelectionDialog(initialLocation: widget.controller.getLocation(), isSelection: widget.isSelection,)
     );
 
     if (newLocation != null) {
@@ -74,7 +75,7 @@ class _LocationFilterWidgetState extends State<LocationFilterWidget> {
         ),
         child: Container(
           height: 40,
-          width: 530,
+          //width: 530,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Row(
             children: [

@@ -5,6 +5,7 @@ import 'package:gestion_ti_frontend/app_theme.dart';
 import 'package:gestion_ti_frontend/screens/private/base_screen.dart';
 import 'package:gestion_ti_frontend/screens/private/configuracion_general.dart';
 import 'package:gestion_ti_frontend/screens/private/departamentos.dart';
+import 'package:gestion_ti_frontend/screens/private/elemento_configuracion_detail.dart';
 import 'package:gestion_ti_frontend/screens/private/elementos_configuracion.dart';
 import 'package:gestion_ti_frontend/screens/private/home.dart';
 import 'package:gestion_ti_frontend/screens/private/personas.dart';
@@ -40,7 +41,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Restro',
+      title: 'SGTI',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
@@ -121,6 +122,18 @@ class MyApp extends StatelessWidget {
         builder: (context, state) {
           return MainLayout(
             child: ElementosConfiguracion(),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/elementos_configuracion_form/:id', // :id es el parámetro opcional para edición
+        builder: (context, state) {
+          // Obtenemos el ID de la ruta. Si no existe, es null (creación)
+          final String? elementoIdStr = state.pathParameters['id'];
+          final int? elementoId = elementoIdStr != 'nuevo' ? int.tryParse(elementoIdStr ?? '') : null;
+
+          return MainLayout( // Asumo que quieres mantener el layout
+            child: ElementoForm(elementoId: elementoId),
           );
         },
       ),
