@@ -111,9 +111,13 @@ class _ElementoFormState extends State<ElementoForm> {
     try {
       setState(() => _isLoading = true);
 
+      const String selectString =
+          '*, '
+          'ubicacion_lugar(id, nombre, edificio(id, nombre, departamento(id, nombre)))';
+
       final data = await supabase
           .from('elemento_configuracion')
-          .select('*')
+          .select(selectString)
           .eq('id', widget.elementoId!)
           .single();
 
@@ -123,6 +127,7 @@ class _ElementoFormState extends State<ElementoForm> {
       _marcaController.text = data['marca'] ?? '';
       _modeloController.text = data['modelo'] ?? '';
       _serieController.text = data['numero_serie'] ?? '';
+      _locationController.setLocation(formatLocationJson(data));
 
       // Set Dropdowns
       _tipoElementoSelected = _tipoElementoItems.firstWhere(
@@ -134,11 +139,7 @@ class _ElementoFormState extends State<ElementoForm> {
             (item) => item['clave'] == data['estado'],
         orElse: () => _estadoItems.first,
       );
-
-      // Set Location Controller (Asumiendo que usa el ID de ubicación)
-      if (data['ubicacion_lugar_id'] != null) {
-        _locationController.setLocation({'ubicacion_id': data['ubicacion_lugar_id']});
-      }
+      
 
     } catch (e) {
       MsgtUtil.showError(context, 'Error al cargar elemento: $e');
@@ -203,6 +204,63 @@ class _ElementoFormState extends State<ElementoForm> {
       setState(() => _isLoading = false);
     }
   }
+
+  Map<String, dynamic> formatLocationJson(Map<String, dynamic> elemento) {
+    final ubicacionNode = elemento['ubicacion_lugar'];
+
+    final Map<String, dynamic> result = {
+      'departamento_id': null,
+      'departamento_nombre': null,
+      'edificio_id': null,
+      'edificio_nombre': null,
+      'ubicacion_id': null,
+      'ubicacion_nombre': null,
+      'full_location_string': 'Ubicación no asignada',
+    };
+
+    if (ubicacionNode == null || ubicacionNode is! Map<String, dynamic>) {
+      return result;
+    }
+
+    final List<String> parts = [];
+
+    if (ubicacionNode['id'] != null) {
+      result['ubicacion_id'] = ubicacionNode['id'];
+    }
+    if (ubicacionNode['nombre'] is String) {
+      result['ubicacion_nombre'] = ubicacionNode['nombre'] as String;
+      parts.add(result['ubicacion_nombre']);
+    }
+
+    final edificioNode = ubicacionNode['edificio'];
+
+    if (edificioNode != null && edificioNode is Map<String, dynamic>) {
+      if (edificioNode['id'] != null) {
+        result['edificio_id'] = edificioNode['id'];
+      }
+      if (edificioNode['nombre'] is String) {
+        result['edificio_nombre'] = edificioNode['nombre'] as String;
+        parts.insert(0, result['edificio_nombre']);
+      }
+
+      final departamentoNode = edificioNode['departamento'];
+
+      if (departamentoNode != null && departamentoNode is Map<String, dynamic>) {
+        if (departamentoNode['id'] != null) {
+          result['departamento_id'] = departamentoNode['id'];
+        }
+        if (departamentoNode['nombre'] is String) {
+          result['departamento_nombre'] = departamentoNode['nombre'] as String;
+          parts.insert(0, result['departamento_nombre']);
+        }
+      }
+    }
+    if (parts.isNotEmpty) {
+      result['full_location_string'] = parts.join(', ');
+    }
+    return result;
+  }
+
 
   String _generateNewClave() {
     final location = _locationController.getLocation();

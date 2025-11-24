@@ -7,7 +7,7 @@ import '../utilities/msg_util.dart';
 
 typedef LocationData = Map<String, dynamic>;
 
-class LocationController {
+class LocationController extends ChangeNotifier {
   LocationData? _selectedLocation;
 
   LocationController({LocationData? initialLocation}) {
@@ -20,6 +20,7 @@ class LocationController {
 
   void setLocation(LocationData? newLocation) {
     _selectedLocation = newLocation;
+    notifyListeners();
   }
 }
 
@@ -39,6 +40,31 @@ class LocationFilterWidget extends StatefulWidget {
 }
 
 class _LocationFilterWidgetState extends State<LocationFilterWidget> {
+
+  void _rebuildOnControllerChange() {
+    setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_rebuildOnControllerChange);
+  }
+
+  @override
+  void didUpdateWidget(LocationFilterWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.controller != oldWidget.controller) {
+      oldWidget.controller.removeListener(_rebuildOnControllerChange);
+      widget.controller.addListener(_rebuildOnControllerChange);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_rebuildOnControllerChange);
+    super.dispose();
+  }
 
   void _openLocationSelection() async {
     final newLocation = await DialogUtil.showCustomDialog(

@@ -68,7 +68,7 @@ class _ElementosConfiguracion extends State<ElementosConfiguracion> {
     try {
       setState(() => _isLoading = true);
 
-      final String selectString =
+      const String selectString =
           '*, '
           'ubicacion_lugar(id, nombre, edificio(id, nombre, departamento(id, nombre)))' ;
 
@@ -150,45 +150,35 @@ class _ElementosConfiguracion extends State<ElementosConfiguracion> {
   }
 
   String formatLocationString(Map<String, dynamic> elemento) {
-    // 1. Obtener el nodo de la ubicación
     final ubicacionNode = elemento['ubicacion_lugar'];
 
-    // Si el nodo es nulo o no es un mapa, retorna 'Ubicación no asignada'.
     if (ubicacionNode == null || ubicacionNode is! Map<String, dynamic>) {
       return 'Ubicación no asignada';
     }
 
-    // 2. Extraer los nombres en orden (Departamento > Edificio > Ubicación/Lugar)
     final List<String> parts = [];
 
-    // Nivel 2: Edificio
     final edificioNode = ubicacionNode['edificio'];
 
     if (edificioNode != null && edificioNode is Map<String, dynamic>) {
-      // Nivel 3: Departamento (anidado en Edificio)
       final departamentoNode = edificioNode['departamento'];
       if (departamentoNode != null && departamentoNode is Map<String, dynamic> && departamentoNode['nombre'] is String) {
         parts.add(departamentoNode['nombre'] as String);
       }
 
-      // Nombre del Edificio
       if (edificioNode['nombre'] is String) {
         parts.add(edificioNode['nombre'] as String);
       }
     }
 
-    // Nivel 1: Ubicación/Lugar
     if (ubicacionNode['nombre'] is String) {
       parts.add(ubicacionNode['nombre'] as String);
     }
 
-    // 3. Unir las partes con coma y espacio
-    // Si no se pudo obtener ninguna parte, devuelve 'Ubicación no asignada'
     if (parts.isEmpty) {
       return 'Ubicación no asignada';
     }
 
-    // Resultado: "Sistemas, B, 02" (si todo está presente)
     return parts.join(', ');
   }
 
