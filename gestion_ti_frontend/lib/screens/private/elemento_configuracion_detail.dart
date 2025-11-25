@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:convert'; // Importamos para manejar JSON
+
 // Asumiendo que estos son los imports de tus componentes y utilidades
 import '../../app_theme.dart';
 import '../../utilities/msg_util.dart';
@@ -11,6 +13,66 @@ import '../../widgets/button.dart';
 import '../../widgets/dropdown.dart';
 import '../../widgets/input.dart';
 import '../../widgets/location_selector.dart'; // Widget LocationFilterWidget y LocationController
+
+// --- ESTRUCTURA DE DATOS PARA COMPONENTES ---
+class Componente {
+  // Usamos 'id' para identificar el componente en la lista localmente
+  // Aunque no se guarda en Supabase, ayuda en la edición/eliminación.
+  final String id;
+  final TextEditingController claveController;
+  final TextEditingController descripcionController;
+  final TextEditingController marcaController;
+  final TextEditingController modeloController;
+  final TextEditingController serieController;
+  final TextEditingController cantidadController;
+  final GlobalKey<FormState> formKey;
+  bool isEditing;
+
+  Componente({
+    String? id,
+    String clave = '',
+    String descripcion = '',
+    String marca = '',
+    String modelo = '',
+    String serie = '',
+    int cantidad = 1,
+    this.isEditing = true, // Por defecto, al agregar uno nuevo, está en modo edición
+  })  : id = id ?? UniqueKey().toString(), // Generar un ID único localmente
+        claveController = TextEditingController(text: clave),
+        descripcionController = TextEditingController(text: descripcion),
+        marcaController = TextEditingController(text: marca),
+        modeloController = TextEditingController(text: modelo),
+        serieController = TextEditingController(text: serie),
+        cantidadController = TextEditingController(text: cantidad.toString()),
+        formKey = GlobalKey<FormState>();
+
+  // Constructor para cargar desde JSON
+  factory Componente.fromJson(Map<String, dynamic> json) {
+    return Componente(
+      id: json['id'] as String?,
+      clave: json['clave'] as String? ?? '',
+      descripcion: json['descripcion'] as String? ?? '',
+      marca: json['marca'] as String? ?? '',
+      modelo: json['modelo'] as String? ?? '',
+      serie: json['numero_serie'] as String? ?? '',
+      cantidad: (json['cantidad'] as num?)?.toInt() ?? 1,
+      isEditing: false, // Por defecto, al cargar desde DB, no está en edición
+    );
+  }
+
+  // Método para convertir a JSON para guardar en Supabase
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id, // Mantenemos el ID para coherencia, aunque no se usa en DB
+      'clave': claveController.text.trim(),
+      'descripcion': descripcionController.text.trim(),
+      'marca': marcaController.text.trim(),
+      'modelo': modeloController.text.trim(),
+      'numero_serie': serieController.text.trim(),
+      'cantidad': int.tryParse(cantidadController.text.trim()) ?? 1,
+    };
+  }
+}
 
 class ElementoForm extends StatefulWidget {
   // Null para registro, ID para edición
@@ -32,7 +94,7 @@ class _ElementoFormState extends State<ElementoForm> {
   final _marcaController = TextEditingController();
   final _modeloController = TextEditingController();
   final _serieController = TextEditingController();
-  // Controlador de Ubicación (asumiendo que LocationController maneja los IDs de Ubicación)
+  // Controlador de Ubicación
   late final LocationController _locationController;
 
   // Estado para Dropdowns
@@ -41,6 +103,9 @@ class _ElementoFormState extends State<ElementoForm> {
 
   dynamic _estadoSelected;
   List<Map<String, dynamic>> _estadoItems = [];
+
+  // --- NUEVO ESTADO PARA COMPONENTES ---
+  List<Componente> _componentes = [];
 
   bool _isLoading = false;
   bool _isEditing = false;
@@ -62,6 +127,15 @@ class _ElementoFormState extends State<ElementoForm> {
     _marcaController.dispose();
     _modeloController.dispose();
     _serieController.dispose();
+    // Liberar controladores de componentes al cerrar
+    for (var comp in _componentes) {
+      comp.claveController.dispose();
+      comp.descripcionController.dispose();
+      comp.marcaController.dispose();
+      comp.modeloController.dispose();
+      comp.serieController.dispose();
+      comp.cantidadController.dispose();
+    }
     super.dispose();
   }
 
@@ -98,7 +172,6 @@ class _ElementoFormState extends State<ElementoForm> {
       if (_isEditing) {
         await _loadElemento();
       }
-
     } catch (e) {
       MsgtUtil.showError(context, 'Error al cargar datos de configuración: $e');
     } finally {
@@ -139,7 +212,15 @@ class _ElementoFormState extends State<ElementoForm> {
             (item) => item['clave'] == data['estado'],
         orElse: () => _estadoItems.first,
       );
-      
+
+      // --- CARGAR COMPONENTES ---
+      final List<dynamic>? componentesJson = data['componentes_json'];
+      if (componentesJson != null) {
+        _componentes = componentesJson
+            .map((json) => Componente.fromJson(json as Map<String, dynamic>))
+            .toList();
+      }
+      // -------------------------
 
     } catch (e) {
       MsgtUtil.showError(context, 'Error al cargar elemento: $e');
@@ -148,26 +229,100 @@ class _ElementoFormState extends State<ElementoForm> {
     }
   }
 
+  // --- Lógica de Componentes (CRUD Local) ---
+
+  void _addComponente() {
+    setState(() {
+      // Asegurarse de que cualquier componente en edición se guarde primero
+      _componentes = _componentes.map((c) {
+        if (c.isEditing) {
+          // Intentar validar y guardar el componente
+          if (c.formKey.currentState?.validate() ?? false) {
+            c.isEditing = false;
+            return c;
+          } else {
+            // Si la validación falla, mantenerlo en edición. No agregamos el nuevo.
+            return c;
+          }
+        }
+        return c;
+      }).toList();
+
+      // Verificar si hay componentes aún en edición inválida
+      if (_componentes.any((c) => c.isEditing)) {
+        MsgtUtil.showWarning(context, 'Debe guardar o cancelar la edición del componente actual.');
+        return;
+      }
+
+      // Agregar un nuevo componente en modo edición
+      _componentes.add(Componente());
+    });
+  }
+
+  void _editComponente(Componente componente) {
+    setState(() {
+      // Desactivar el modo edición de otros componentes
+      _componentes.where((c) => c.id != componente.id).forEach((c) => c.isEditing = false);
+      componente.isEditing = true;
+    });
+  }
+
+  void _saveComponente(Componente componente) {
+    // Validar el formulario del componente
+    if (componente.formKey.currentState!.validate()) {
+      setState(() {
+        componente.isEditing = false;
+      });
+    } else {
+      MsgtUtil.showWarning(context, 'Revise los campos obligatorios del componente.');
+    }
+  }
+
+  void _deleteComponente(Componente componente) {
+    // Asegurarse de liberar los controladores
+    componente.claveController.dispose();
+    componente.descripcionController.dispose();
+    componente.marcaController.dispose();
+    componente.modeloController.dispose();
+    componente.serieController.dispose();
+    componente.cantidadController.dispose();
+
+    setState(() {
+      _componentes.removeWhere((c) => c.id == componente.id);
+    });
+  }
+
+
   // --- Lógica de Envío ---
 
   Future<void> _saveElemento() async {
-    // Validar que el formulario sea válido
+    // 1. Validar el formulario principal
     if (!_formKey.currentState!.validate()) {
-      MsgtUtil.showWarning(context, 'Revise los campos obligatorios.');
+      MsgtUtil.showWarning(context, 'Revise los campos obligatorios del elemento.');
       return;
     }
 
-    // Validar que se haya seleccionado una ubicación (asumiendo que LocationFilterWidget lo requiere)
+    // 2. Validar ubicación
     if (_locationController.getLocation()?['ubicacion_id'] == null) {
       MsgtUtil.showWarning(context, 'Debe seleccionar una ubicación válida.');
       return;
     }
 
+    // 3. Validar componentes: asegurarse de que ninguno esté en edición
+    if (_componentes.any((c) => c.isEditing)) {
+      MsgtUtil.showWarning(context, 'Guarde o cancele la edición de todos los componentes antes de guardar el elemento.');
+      return;
+    }
+
     if (!_isEditing) {
+      // Generar clave solo en caso de registro nuevo
       _claveController.text = _generateNewClave();
     }
 
     setState(() => _isLoading = true);
+
+    // Convertir la lista de Componente a una lista de Map<String, dynamic> (JSON)
+    final List<Map<String, dynamic>> componentesJsonList = _componentes.map((c) => c.toJson()).toList();
 
     final payload = {
       'clave': _claveController.text.trim(),
@@ -178,7 +333,7 @@ class _ElementoFormState extends State<ElementoForm> {
       'numero_serie': _serieController.text.trim(),
       'estado': _estadoSelected?['clave'],
       'ubicacion_lugar_id': _locationController.getLocation()?['ubicacion_id'],
-      // Campos de auditoría (registro_fecha, usuario_registro, etc.) se gestionan en Supabase
+      'componentes_json': componentesJsonList, // <-- CAMPO JSON DE COMPONENTES
     };
 
     try {
@@ -204,6 +359,9 @@ class _ElementoFormState extends State<ElementoForm> {
       setState(() => _isLoading = false);
     }
   }
+  // ... (El resto de las funciones auxiliares como formatLocationJson, _generateNewClave, _buildDropdownItems, _buildEstadoDropdownItems, _buildEstadoChip permanecen igual)
+
+  // ... (Funciones formatLocationJson, _generateNewClave, _buildDropdownItems, _buildEstadoDropdownItems, _buildEstadoChip van aquí, sin cambios)
 
   Map<String, dynamic> formatLocationJson(Map<String, dynamic> elemento) {
     final ubicacionNode = elemento['ubicacion_lugar'];
@@ -261,7 +419,6 @@ class _ElementoFormState extends State<ElementoForm> {
     return result;
   }
 
-
   String _generateNewClave() {
     final location = _locationController.getLocation();
     final tipo = _tipoElementoSelected?['clave'] as String? ?? 'N/A';
@@ -282,8 +439,6 @@ class _ElementoFormState extends State<ElementoForm> {
     return '$edificioCode$ubicacionCode$tipoCode$randomDigits';
   }
 
-  // --- Dropdown Builders (Reutilizados) ---
-
   List<DropdownMenuItem<dynamic>> _buildDropdownItems(List<dynamic> data) {
     return data.map<DropdownMenuItem<dynamic>>((item) {
       final String clave = item['clave'] ?? 'Sin Nombre';
@@ -303,8 +458,6 @@ class _ElementoFormState extends State<ElementoForm> {
       );
     }).toList();
   }
-
-  // --- UI Componentes ---
 
   Widget _buildEstadoChip(String estado) {
     Color bg;
@@ -339,7 +492,10 @@ class _ElementoFormState extends State<ElementoForm> {
     );
   }
 
+  // ...
+
   Widget _buildDatosGenerales() {
+    // ... (Tu implementación original de _buildDatosGenerales)
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -479,6 +635,150 @@ class _ElementoFormState extends State<ElementoForm> {
     );
   }
 
+  // --- NUEVA IMPLEMENTACIÓN DE COMPONENTES ---
+
+  Widget _buildComponenteRow(Componente componente) {
+    final bool isEditing = componente.isEditing;
+
+    // Validación simplificada para Input
+    String? requiredValidator(String? value) {
+      if (value == null || value.trim().isEmpty) {
+        return 'Requerido';
+      }
+      return null;
+    }
+
+    String? intValidator(String? value) {
+      if (value == null || value.trim().isEmpty) {
+        return 'Req.';
+      }
+      if (int.tryParse(value) == null || (int.tryParse(value) ?? 0) < 1) {
+        return 'Inválido';
+      }
+      return null;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Form(
+        key: componente.formKey,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(width: 2,),
+            Expanded(
+              flex: 3,
+              child: isEditing
+                  ? Input(
+                controller: componente.claveController,
+                labelText: 'Clave',
+                //validator: requiredValidator,
+                //dense: true,
+              )
+                  : Text(componente.claveController.text, ),
+            ),
+            const SizedBox(width: 10),
+
+            // Descripción (Lectura o Input)
+            Expanded(
+              flex: 4,
+              child: isEditing
+                  ? Input(
+                controller: componente.descripcionController,
+                labelText: 'Descripción',
+                //validator: requiredValidator,
+                //dense: true,
+              )
+                  : Text(componente.descripcionController.text, ),
+            ),
+            const SizedBox(width: 10),
+
+            // Cantidad (Lectura o Input)
+            Expanded(
+              flex: 2,
+              child: isEditing
+                  ? Input(
+                controller: componente.cantidadController,
+                labelText: 'Cant.',
+                //validator: intValidator,
+                keyboardType: TextInputType.number,
+                //dense: true,
+              )
+                  : Text(componente.cantidadController.text, textAlign: TextAlign.start,),
+            ),
+            const SizedBox(width: 10),
+
+            // Marca (Lectura o Input)
+            Expanded(
+              flex: 3,
+              child: isEditing
+                  ? Input(
+                controller: componente.marcaController,
+                labelText: 'Marca',
+                //dense: true,
+              )
+                  : Text(componente.marcaController.text, ),
+            ),
+            const SizedBox(width: 10),
+
+            // Modelo (Lectura o Input)
+            Expanded(
+              flex: 3,
+              child: isEditing
+                  ? Input(
+                controller: componente.modeloController,
+                labelText: 'Modelo',
+                //dense: true,
+              )
+                  : Text(componente.modeloController.text, ),
+            ),
+            const SizedBox(width: 10),
+
+            // N° Serie (Lectura o Input)
+            Expanded(
+              flex: 3,
+              child: isEditing
+                  ? Input(
+                controller: componente.serieController,
+                labelText: 'N° Serie',
+                //dense: true,
+              )
+                  : Text(componente.serieController.text, ),
+            ),
+            const SizedBox(width: 10),
+
+            // Acciones
+            Expanded(
+              flex: 3,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (isEditing)
+                    IconButton(
+                      icon: const Icon(Icons.save, color: Colors.black),
+                      tooltip: 'Guardar',
+                      onPressed: () => _saveComponente(componente),
+                    )
+                  else
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.black),
+                      tooltip: 'Editar',
+                      onPressed: () => _editComponente(componente),
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.black),
+                    tooltip: 'Eliminar',
+                    onPressed: () => _deleteComponente(componente),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildComponentesSection() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -515,9 +815,7 @@ class _ElementoFormState extends State<ElementoForm> {
                 text: 'Agregar Componente',
                 icon: Icons.add,
                 backgroundColor: Colors.teal,
-                onPressed: () {
-                  MsgtUtil.showWarning(context, 'Funcionalidad de Agregar Componente (Pendiente)');
-                },
+                onPressed: _addComponente,
               ),
             ],
           ),
@@ -525,37 +823,42 @@ class _ElementoFormState extends State<ElementoForm> {
 
           // Encabezado de la Tabla de Componentes
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 14),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
             decoration: BoxDecoration(
               color: Colors.grey.shade100,
               border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
             ),
             child: const Row(
               children: [
-                Expanded(flex: 3, child: Center(child: Text('Clave', style: TextStyle(fontWeight: FontWeight.bold)))),
-                Expanded(flex: 4, child: Center(child: Text('Descripción', style: TextStyle(fontWeight: FontWeight.bold)))),
-                Expanded(flex: 2, child: Center(child: Text('Cantidad', style: TextStyle(fontWeight: FontWeight.bold)))),
-                Expanded(flex: 3, child: Center(child: Text('Marca', style: TextStyle(fontWeight: FontWeight.bold)))),
-                Expanded(flex: 3, child: Center(child: Text('Modelo', style: TextStyle(fontWeight: FontWeight.bold)))),
-                Expanded(flex: 3, child: Center(child: Text('N° Serie', style: TextStyle(fontWeight: FontWeight.bold)))),
-                Expanded(flex: 3, child: Center(child: Text('Acciones', style: TextStyle(fontWeight: FontWeight.bold)))),
+                Expanded(flex: 3, child: Text('Clave', style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(flex: 4, child: Text('Descripción', style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(flex: 2, child: Text('Cantidad', style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(flex: 3, child: Text('Marca', style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(flex: 3, child: Text('Modelo', style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(flex: 3, child: Text('N° Serie', style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(flex: 3, child: Text('', style: TextStyle(fontWeight: FontWeight.bold))),
               ],
             ),
           ),
 
-          // Placeholder de Lista de Componentes
-          const SizedBox(height: 40),
-          Center(
-            child: Column(
-              children: [
-                Icon(Icons.add_circle_outline, size: 40, color: Colors.grey.shade400),
-                const SizedBox(height: 8),
-                Text('No hay componentes agregados', style: AppTheme.light.body),
-                Text('Haga clic en "Agregar Componente" para comenzar', style: AppTheme.light.body),
-              ],
+          // Lista de Componentes
+          if (_componentes.isNotEmpty)
+            ..._componentes.map((componente) => _buildComponenteRow(componente)).toList()
+          else
+          // Placeholder si no hay componentes
+            const SizedBox(height: 40),
+          if (_componentes.isEmpty)
+            Center(
+              child: Column(
+                children: [
+                  Icon(Icons.add_circle_outline, size: 40, color: Colors.grey.shade400),
+                  const SizedBox(height: 8),
+                  Text('No hay componentes agregados', style: AppTheme.light.body),
+                  Text('Haga clic en "Agregar Componente" para comenzar', style: AppTheme.light.body),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -570,37 +873,46 @@ class _ElementoFormState extends State<ElementoForm> {
       progressIndicator: const CircularProgressIndicator(),
       child: Form(
         key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              _buildDatosGenerales(),
-              const SizedBox(height: 20),
-              _buildComponentesSection(),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Button(
-                    width: 200,
-                    text: _isEditing ? 'Actualizar Elemento' : 'Guardar Elemento',
-                    icon: Icons.save_outlined,
-                    onPressed: () {
-                      _saveElemento();
-                    },
-                  ),
-                  const SizedBox(width: 10,),
-                  Button(
-                    width: 200,
-                    text: 'Regresar',
-                    icon: Icons.arrow_back,
-                    backgroundColor: Colors.grey,
-                    onPressed: () {
-                      context.go('/elementos_configuracion');
-                    },
-                  ),
-                ],
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _buildDatosGenerales(),
+                    const SizedBox(height: 20),
+                    _buildComponentesSection(), // <-- Sección de componentes actualizada
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 5,),
+            const Divider(),
+            const SizedBox(height: 5,),
+            Row(
+              children: [
+                Button(
+                  width: 200,
+                  text: _isEditing ? 'Actualizar Elemento' : 'Guardar Elemento',
+                  icon: Icons.save_outlined,
+                  onPressed: () {
+                    _saveElemento();
+                  },
+                ),
+                const SizedBox(width: 10,),
+                Button(
+                  width: 200,
+                  text: 'Regresar',
+                  icon: Icons.arrow_back,
+                  backgroundColor: Colors.grey,
+                  onPressed: () {
+                    context.go('/elementos_configuracion');
+                  },
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
