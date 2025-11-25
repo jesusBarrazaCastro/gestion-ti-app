@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../app_theme.dart';
+// Asumo que tienes este import para AppTheme
+// import '../app_theme.dart';
 
 class Input extends FormField<String> {
   final String? hintText;
@@ -23,7 +24,11 @@ class Input extends FormField<String> {
   final int? maxLines;
   final List<TextInputFormatter>? inputFormatters;
   final TextAlign? textAlign;
-  final void Function(String)? onChanged; // Callback onChanged agregado
+  final void Function(String)? onChanged;
+  final void Function(String)? onSubmitted;
+  final void Function()? onIconPressed;
+  final IconData? icon;
+  final bool dense;
 
   Input({
     Key? key,
@@ -36,7 +41,7 @@ class Input extends FormField<String> {
     this.textStyle,
     this.hintStyle,
     this.width,
-    this.height = 40,
+    this.height = 40.0,
     this.borderRadius,
     this.borderColor,
     this.borderWidth = 2.0,
@@ -46,7 +51,11 @@ class Input extends FormField<String> {
     this.maxLines = 1,
     this.inputFormatters,
     this.textAlign,
-    this.onChanged, // Inicializa el callback
+    this.onChanged,
+    this.onSubmitted,
+    this.onIconPressed,
+    this.icon,
+    this.dense = false,
   }) : super(
     key: key,
     validator: (value) {
@@ -56,6 +65,25 @@ class Input extends FormField<String> {
       return null;
     },
     builder: (FormFieldState<String> state) {
+
+      final bool isSingleLine = maxLines == 1;
+      final double? boxHeight = isSingleLine ? height : null;
+
+      final double verticalPadding = isSingleLine ? 8 : 12;
+      final double horizontalPadding = 12;
+
+      // Determinar la acción del teclado (Enter/Return)
+      final TextInputAction action = isSingleLine
+          ? TextInputAction.done
+          : TextInputAction.newline;
+
+      // ✨ CORRECCIÓN CLAVE: Si es multilínea, forzamos el tipo de teclado a multiline
+      // para cumplir con la aserción de Flutter y permitir el salto de línea.
+      final TextInputType finalKeyboardType = isSingleLine
+          ? keyboardType // Si es una sola línea, usamos el tipo de teclado pasado (text, email, etc.)
+          : TextInputType.multiline; // Si es multilínea, debe ser multiline.
+
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -65,59 +93,74 @@ class Input extends FormField<String> {
               style: labelStyle ??
                   const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
             ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           SizedBox(
             width: width,
-            height: height,
+            height: boxHeight,
             child: TextField(
               controller: controller,
               obscureText: isPassword,
-              keyboardType: keyboardType,
+
+              // 👈 APLICACIÓN DE LA CORRECCIÓN
+              keyboardType: finalKeyboardType,
+
               enabled: enabled,
+              minLines: isSingleLine ? 1 : maxLines,
               maxLines: maxLines,
               textAlign: textAlign ?? TextAlign.start,
               style: textStyle ?? const TextStyle(color: Colors.black, fontSize: 13),
               inputFormatters: inputFormatters,
+
+              // Aplicar la acción del teclado
+              textInputAction: action,
+
+              // El callback onSubmitted solo tiene sentido si no es multilínea
+              onSubmitted: isSingleLine ? onSubmitted : null,
+
               decoration: InputDecoration(
                 hintText: hintText ?? '',
                 hintStyle: hintStyle ?? const TextStyle(color: Colors.grey),
                 filled: true,
                 fillColor: backgroundColor ?? Colors.white,
-                contentPadding:
-                const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: verticalPadding,
+                  horizontal: horizontalPadding,
+                ),
+                suffixIcon: icon != null
+                    ? IconButton(
+                  icon: Icon(icon, color: Colors.grey),
+                  onPressed: enabled ? onIconPressed : null,
+                )
+                    : null,
+
+                // Estilos de borde y error (sin cambios)
                 border: OutlineInputBorder(
                   borderRadius: borderRadius ?? BorderRadius.circular(8.0),
                   borderSide: BorderSide(
-                    color: state.hasError
-                        ? Colors.red
-                        : borderColor ?? Colors.grey,
+                    color: state.hasError ? Colors.red : borderColor ?? Colors.grey,
                     width: borderWidth,
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: borderRadius ?? BorderRadius.circular(8.0),
                   borderSide: BorderSide(
-                    color: state.hasError
-                        ? Colors.red
-                        : borderColor ?? Colors.grey,
+                    color: state.hasError ? Colors.red : borderColor ?? Colors.grey,
                     width: borderWidth,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: borderRadius ?? BorderRadius.circular(8.0),
                   borderSide: BorderSide(
-                    color: state.hasError
-                        ? Colors.red
-                        : borderColor ?? AppTheme.light.primary,
+                    color: state.hasError ? Colors.red : borderColor ?? Colors.blue,
                     width: borderWidth,
                   ),
                 ),
                 errorText: state.hasError ? state.errorText : null,
               ),
               onChanged: (value) {
-                state.didChange(value); // Disparar validación
+                state.didChange(value);
                 if (onChanged != null) {
-                  Future.microtask(() => onChanged!(value)); // Ensure execution in the next frame
+                  Future.microtask(() => onChanged!(value));
                 }
               },
             ),

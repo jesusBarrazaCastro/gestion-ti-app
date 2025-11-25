@@ -902,6 +902,25 @@ class _ElementoFormState extends State<ElementoForm> {
                 ),
                 const SizedBox(width: 10,),
                 Button(
+                  width: 220,
+                  text: 'Registrar Incidencia',
+                  icon: Icons.error_outline,
+                  backgroundColor: Colors.red,
+                  onPressed: () {
+                    if (widget.elementoId != null) {
+                      final int idDelElemento = widget.elementoId!;
+                      final String ruta = '/incidencia_detail/nuevo?elementoId=$idDelElemento';
+                      context.go(ruta);
+                    } else {
+                      MsgtUtil.showWarning(
+                          context,
+                          'Debe guardar el Elemento de Configuración antes de registrar una incidencia asociada.'
+                      );
+                    }
+                  },
+                ),
+                const Spacer(),
+                Button(
                   width: 200,
                   text: 'Regresar',
                   icon: Icons.arrow_back,

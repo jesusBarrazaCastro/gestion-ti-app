@@ -8,6 +8,8 @@ import 'package:gestion_ti_frontend/screens/private/departamentos.dart';
 import 'package:gestion_ti_frontend/screens/private/elemento_configuracion_detail.dart';
 import 'package:gestion_ti_frontend/screens/private/elementos_configuracion.dart';
 import 'package:gestion_ti_frontend/screens/private/home.dart';
+import 'package:gestion_ti_frontend/screens/private/incidencia_detail.dart';
+import 'package:gestion_ti_frontend/screens/private/incidencia_list.dart';
 import 'package:gestion_ti_frontend/screens/private/personas.dart';
 import 'package:gestion_ti_frontend/screens/public/login.dart';
 import 'package:gestion_ti_frontend/screens/public/not_found.dart';
@@ -122,6 +124,34 @@ class MyApp extends StatelessWidget {
         builder: (context, state) {
           return MainLayout(
             child: ElementosConfiguracion(),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/gestion_incidencias',
+        builder: (context, state) {
+          return MainLayout(
+            child: Incidencias(),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/incidencia_detail/:id', // :id es el parámetro opcional para edición
+        builder: (context, state) {
+          // 1. Obtener el ID de Incidencia (parámetro de ruta)
+          final String? incidenciaIdStr = state.pathParameters['id'];
+          final int? incidenciaId = incidenciaIdStr != 'nuevo' ? int.tryParse(incidenciaIdStr ?? '') : null;
+
+          // 2. Obtener el ID del Elemento de Configuración (query parameter)
+          // Se usa 'elementoId' en minúsculas para consistencia con la URL
+          final String? elementoIdStr = state.uri.queryParameters['elementoId'];
+          final int? elementoId = int.tryParse(elementoIdStr ?? '');
+
+          return MainLayout( // Asumo que quieres mantener el layout
+            child: IncidenciaDetail(
+              incidenciaId: incidenciaId,
+              elementoId: elementoId, // <<-- PASAMOS EL NUEVO PARÁMETRO
+            ),
           );
         },
       ),
@@ -301,6 +331,11 @@ class MainLayout extends StatelessWidget {
                         label: 'Inicio',
                         path: '/home',
                         icon: Icons.home,
+                      ),
+                      buildMenuItem(
+                        label: 'Gestión de incidencias',
+                        path: '/gestion_incidencias',
+                        icon: Icons.warning,
                       ),
                       buildMenuItem(
                         label: 'Gestión de configuraciones',

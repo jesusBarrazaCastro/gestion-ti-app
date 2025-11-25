@@ -60,7 +60,7 @@ class NumericInput extends Input {
     textStyle: textStyle ?? const TextStyle(color: Colors.black),
     backgroundColor: backgroundColor,
     width: width,
-    height: height,
+    //height: height,
     borderRadius: borderRadius,
     borderColor: borderColor,
     borderWidth: borderWidth,
