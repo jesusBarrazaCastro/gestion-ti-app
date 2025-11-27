@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gestion_ti_frontend/utilities/msg_util.dart';
 import '../../app_theme.dart';
 import '../../widgets/button.dart';
+import '../../widgets/dropdown.dart';
+import '../../widgets/input.dart';
 
 class ConfigGestionCam extends StatefulWidget {
   const ConfigGestionCam({super.key});
@@ -22,8 +24,21 @@ class _ConfigGestionCamState extends State<ConfigGestionCam> {
   final TextEditingController _tituloController = TextEditingController();
   final TextEditingController _descripcionController = TextEditingController();
 
+  // Valores del formulario
   String _tipoCambio = 'Normal';
   String _estadoCambio = 'Pendiente';
+
+  final List<String> _tipoCambioOptions = [
+    'Estándar',
+    'Normal',
+    'Urgente',
+  ];
+
+  final List<String> _estadoCambioOptions = [
+    'Pendiente',
+    'En progreso',
+    'Completado',
+  ];
 
   // Lista local de cambios (luego se puede llenar desde Supabase)
   final List<Map<String, dynamic>> _cambios = [];
@@ -42,9 +57,9 @@ class _ConfigGestionCamState extends State<ConfigGestionCam> {
 
       // TODO: Reemplazar por tu tabla real en Supabase, ejemplo:
       // final response = await supabase.from('gestion_cambios').select();
-      // setState(() {
-      //   _cambios = List<Map<String, dynamic>>.from(response);
-      // });
+      // _cambios
+      //   ..clear()
+      //   ..addAll(List<Map<String, dynamic>>.from(response));
 
       // Mock temporal mientras conectas Supabase:
       _cambios.clear();
@@ -78,7 +93,7 @@ class _ConfigGestionCamState extends State<ConfigGestionCam> {
     final descripcion = _descripcionController.text.trim();
 
     if (titulo.isEmpty || descripcion.isEmpty) {
-      MsgtUtil.showError(
+      MsgtUtil.showWarning(
         context,
         'Título y descripción del cambio son obligatorios.',
       );
@@ -132,188 +147,100 @@ class _ConfigGestionCamState extends State<ConfigGestionCam> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+  List<DropdownMenuItem<dynamic>> _buildStringDropdownItems(
+    List<String> options,
+  ) {
+    return options
+        .map(
+          (opt) => DropdownMenuItem<dynamic>(
+            value: opt,
+            child: Text(opt),
+          ),
+        )
+        .toList();
+  }
 
-    return ModalProgressHUD(
-      inAsyncCall: _isLoading,
-      color: Colors.black,
-      progressIndicator: const CircularProgressIndicator(),
-      child: Padding(
-        padding: const EdgeInsets.only(top: 16, left: 12, right: 12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // CONTENIDO SCROLLEABLE
-            Expanded(
-              child: Scrollbar(
-                thumbVisibility: true,
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Título
-                      Text(
-                        'Gestión de cambios',
-                        style: AppTheme.light.title1,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Card de formulario
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: colorScheme.surface.withOpacity(0.6),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.06),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Registrar nuevo cambio',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _tituloController,
-                              decoration: const InputDecoration(
-                                labelText: 'Título del cambio',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _descripcionController,
-                              maxLines: 3,
-                              decoration: const InputDecoration(
-                                labelText: 'Descripción del cambio',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: DropdownButtonFormField<String>(
-                                    value: _tipoCambio,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Tipo de cambio',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                    items: const [
-                                      DropdownMenuItem(
-                                        value: 'Estándar',
-                                        child: Text('Estándar'),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: 'Normal',
-                                        child: Text('Normal'),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: 'Urgente',
-                                        child: Text('Urgente'),
-                                      ),
-                                    ],
-                                    onChanged: (value) {
-                                      if (value != null) {
-                                        setState(() {
-                                          _tipoCambio = value;
-                                        });
-                                      }
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: DropdownButtonFormField<String>(
-                                    value: _estadoCambio,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Estado',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                    items: const [
-                                      DropdownMenuItem(
-                                        value: 'Pendiente',
-                                        child: Text('Pendiente'),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: 'En progreso',
-                                        child: Text('En progreso'),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: 'Completado',
-                                        child: Text('Completado'),
-                                      ),
-                                    ],
-                                    onChanged: (value) {
-                                      if (value != null) {
-                                        setState(() {
-                                          _estadoCambio = value;
-                                        });
-                                      }
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Tabla de cambios registrados
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Cambios registrados',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          IconButton(
-                            onPressed: _fetchCambios,
-                            icon: const Icon(Icons.refresh_rounded),
-                            tooltip: 'Actualizar lista',
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      _buildTablaCambios(),
-
-                      const SizedBox(height: 24),
-                    ],
-                  ),
+  Widget _buildFormulario(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.only(bottom: 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Encabezado del bloque
+          const Row(
+            children: [
+            
+              Text(
+                'Registrar nuevo cambio',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
+            ],
+          ),
+          const Divider(height: 24),
 
-            const SizedBox(height: 3),
-            const Divider(),
-            const SizedBox(height: 3),
+          // Título del cambio
+          Input(
+            controller: _tituloController,
+            labelText: 'Título del cambio',
+            maxLines: 1,
+          ),
+          const SizedBox(height: 16),
 
+          // Descripción
+          Input(
+            controller: _descripcionController,
+            labelText: 'Descripción del cambio',
+            maxLines: 4,
+          ),
+          const SizedBox(height: 20),
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Button(
-                  width: 180,
-                  icon: Icons.save,
-                  text: 'Guardar cambio',
-                  onPressed: _guardarCambio,
+          // Tipo + Estado
+          Row(
+            children: [
+              Expanded(
+                child: Dropdown(
+                  labelText: 'Tipo de cambio',
+                  value: _tipoCambio,
+                  items: _buildStringDropdownItems(_tipoCambioOptions),
+                  onChanged: (value) {
+                    setState(() {
+                      _tipoCambio = value as String;
+                    });
+                  },
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Dropdown(
+                  labelText: 'Estado',
+                  value: _estadoCambio,
+                  items: _buildStringDropdownItems(_estadoCambioOptions),
+                  onChanged: (value) {
+                    setState(() {
+                      _estadoCambio = value as String;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -348,6 +275,82 @@ class _ConfigGestionCamState extends State<ConfigGestionCam> {
             ],
           );
         }).toList(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ModalProgressHUD(
+      inAsyncCall: _isLoading,
+      color: Colors.black,
+      progressIndicator: const CircularProgressIndicator(),
+      child: Padding(
+        padding: const EdgeInsets.only(top: 16, left: 12, right: 12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // CONTENIDO SCROLLEABLE
+            Expanded(
+              child: Scrollbar(
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Título
+                      Text(
+                        'Gestión de cambios',
+                        style: AppTheme.light.title1,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Formulario con maquetación tipo IncidenciaDetail
+                      _buildFormulario(context),
+
+                      // Tabla de cambios registrados
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Cambios registrados',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          IconButton(
+                            onPressed: _fetchCambios,
+                            icon: const Icon(Icons.refresh_rounded),
+                            tooltip: 'Actualizar lista',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _buildTablaCambios(),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 3),
+            const Divider(),
+            const SizedBox(height: 3),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+              Button(
+                width: 180,
+                icon: Icons.save,
+                text: 'Guardar cambio',
+                onPressed: _guardarCambio,
+              ),
+            ],
+        
+          ),
+          ],
+        ),
       ),
     );
   }
