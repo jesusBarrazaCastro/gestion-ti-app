@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:gestion_ti_frontend/app_theme.dart';
+import 'package:gestion_ti_frontend/screens/private/configuracion_gestion_cambio.dart';
 import 'package:gestion_ti_frontend/screens/private/base_screen.dart';
 import 'package:gestion_ti_frontend/screens/private/configuracion_general.dart';
 import 'package:gestion_ti_frontend/screens/private/departamentos.dart';
@@ -124,6 +125,13 @@ class MyApp extends StatelessWidget {
         builder: (context, state) {
           return MainLayout(
             child: ElementosConfiguracion(),
+          );
+        },
+      ),GoRoute(
+        path: '/gestion_cambios',
+        builder: (context, state) {
+          return MainLayout(
+            child: ConfigGestionCam(),
           );
         },
       ),
@@ -341,6 +349,11 @@ class MainLayout extends StatelessWidget {
                         label: 'Gestión de configuraciones',
                         path: '/elementos_configuracion',
                         icon: Icons.computer_outlined,
+                      ), 
+                      buildMenuItem(
+                        label: 'Gestión de Cambios',
+                        path: '/gestion_cambios',
+                        icon: Icons.change_circle_rounded,
                       ),
                       buildMenuItem(
                         label: 'Ubicaciones',

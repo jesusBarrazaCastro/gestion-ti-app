@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:gestion_ti_frontend/screens/private/configuracion_gestion_configuraciones.dart';
 import 'package:gestion_ti_frontend/screens/private/configuracion_gestion_incidencias.dart';
+import 'package:gestion_ti_frontend/screens/private/configuracion_gestion_cambio.dart';
 import 'package:gestion_ti_frontend/screens/private/persona_detail.dart';
 import 'package:gestion_ti_frontend/utilities/constants.dart';
 import 'package:gestion_ti_frontend/utilities/msg_util.dart';
@@ -131,7 +132,9 @@ class _ConfiguracionGeneralState extends State<ConfiguracionGeneral>
             ),
 
             const SizedBox(height: 16),
-
+            /*
+              Esto es el modulo de gestion de cambios para e integrarlo en una pestaña
+             */
             // TabBar Views
             Expanded(
               child: TabBarView(
@@ -139,7 +142,7 @@ class _ConfiguracionGeneralState extends State<ConfiguracionGeneral>
                 children: [
                   _configuracionGestionConfiguraciones(),
                   _configuracionGestionIncidencias(),
-                  const Center(child: Text("🔄 Contenido de Gestión de Cambios")),
+                  const Text('Gestión de cambios coming soon...'),
                 ],
               ),
             ),
