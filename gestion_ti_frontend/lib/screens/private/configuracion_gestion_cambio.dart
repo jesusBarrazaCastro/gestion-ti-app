@@ -26,21 +26,29 @@ class _ConfigGestionCamState extends State<ConfigGestionCam> {
 
   // Valores del formulario
   String _tipoCambio = 'Normal';
+  String _prioridadCambio = 'Media';
   String _estadoCambio = 'Pendiente';
 
   final List<String> _tipoCambioOptions = [
-    'Estándar',
     'Normal',
+    'Estándar',
     'Urgente',
+  ];
+
+  final List<String> _prioridadOptions = [
+    'Alta',
+    'Media',
+    'Baja',
   ];
 
   final List<String> _estadoCambioOptions = [
     'Pendiente',
-    'En progreso',
-    'Completado',
+    'Aprobado',
+    'Rechazado',
+    'Implementado',
   ];
 
-  // Lista local de cambios (luego se puede llenar desde Supabase)
+  // Lista local de cambios (se llena desde Supabase)
   final List<Map<String, dynamic>> _cambios = [];
 
   @override
@@ -50,43 +58,47 @@ class _ConfigGestionCamState extends State<ConfigGestionCam> {
   }
 
   Future<void> _fetchCambios() async {
-    try {
-      setState(() {
-        _isLoading = true;
-      });
+  try {
+    setState(() {
+      _isLoading = true;
+    });
 
-      // TODO: Reemplazar por tu tabla real en Supabase, ejemplo:
-      // final response = await supabase.from('gestion_cambios').select();
-      // _cambios
-      //   ..clear()
-      //   ..addAll(List<Map<String, dynamic>>.from(response));
+    final response = await supabase
+        .from('solicitud_cambio')
+        .select('id, tipo, prioridad, estado, motivo')
+        .eq('registro_estado', true)
+        .order('registro_fecha', ascending: false);
 
-      // Mock temporal mientras conectas Supabase:
+    // Asegurarnos de que realmente tenemos una lista
+    if (response is! List) {
+      // Algo raro regresó Supabase, evitamos crashear la UI
       _cambios.clear();
-      _cambios.addAll([
-        {
-          'id': 1,
-          'titulo': 'Actualizar flujo de login',
-          'tipo': 'Normal',
-          'estado': 'En progreso',
-        },
-        {
-          'id': 2,
-          'titulo': 'Parche crítico en producción',
-          'tipo': 'Urgente',
-          'estado': 'Completado',
-        },
-      ]);
-
       setState(() {});
-    } catch (e) {
-      MsgtUtil.showError(context, 'Error al obtener cambios: $e');
-    } finally {
+      return;
+    }
+
+    final List<dynamic> data = response;
+
+    _cambios
+      ..clear()
+      ..addAll(
+        data.map((row) {
+          // Cada row debería ser un Map<String, dynamic>
+          return Map<String, dynamic>.from(row as Map);
+        }),
+      );
+
+    setState(() {});
+  } catch (e) {
+    MsgtUtil.showError(context, 'Error al obtener cambios: $e');
+  } finally {
+    if (mounted) {
       setState(() {
         _isLoading = false;
       });
     }
   }
+}
 
   Future<void> _guardarCambio() async {
     final titulo = _tituloController.text.trim();
@@ -100,32 +112,41 @@ class _ConfigGestionCamState extends State<ConfigGestionCam> {
       return;
     }
 
+    // Como en la tabla solo tenemos "motivo", vamos a guardar
+    // título + descripción en ese campo para no perder info.
+    final String motivo = '$titulo - $descripcion';
+
     try {
       setState(() {
         _isLoading = true;
       });
 
-      // TODO: Guardar en Supabase. Ejemplo:
-      // await supabase.from('gestion_cambios').insert({
-      //   'titulo': titulo,
-      //   'descripcion': descripcion,
-      //   'tipo': _tipoCambio,
-      //   'estado': _estadoCambio,
-      //   'fecha_registro': DateTime.now().toIso8601String(),
-      // });
-
-      // Mientras no conectas Supabase, agregamos local:
-      final nuevoId = _cambios.isEmpty ? 1 : (_cambios.last['id'] as int) + 1;
-      _cambios.add({
-        'id': nuevoId,
-        'titulo': titulo,
+      // TODO: si ya tienes elemento_id y solicitante_persona_id,
+      // agrégalos aquí.
+      final insertPayload = {
+        'motivo': motivo,
         'tipo': _tipoCambio,
+        'prioridad': _prioridadCambio,
         'estado': _estadoCambio,
-      });
+        'registro_fecha': DateTime.now().toIso8601String(),
+        'registro_estado': true,
+        // 'elemento_id': <ID_DEL_ELEMENTO>?,
+        // 'solicitante_persona_id': <UUID_PERSONA>?,
+      };
+
+      final inserted = await supabase
+          .from('solicitud_cambio')
+          .insert(insertPayload)
+          .select('id, tipo, prioridad, estado, motivo')
+          .single();
+
+      // Añadimos a la lista local para que se vea inmediatamente
+      _cambios.insert(0, Map<String, dynamic>.from(inserted));
 
       _tituloController.clear();
       _descripcionController.clear();
       _tipoCambio = 'Normal';
+      _prioridadCambio = 'Media';
       _estadoCambio = 'Pendiente';
 
       setState(() {});
@@ -182,7 +203,6 @@ class _ConfigGestionCamState extends State<ConfigGestionCam> {
           // Encabezado del bloque
           const Row(
             children: [
-            
               Text(
                 'Registrar nuevo cambio',
                 style: TextStyle(
@@ -205,12 +225,12 @@ class _ConfigGestionCamState extends State<ConfigGestionCam> {
           // Descripción
           Input(
             controller: _descripcionController,
-            labelText: 'Descripción del cambio',
+            labelText: 'Descripción / Motivo del cambio',
             maxLines: 4,
           ),
           const SizedBox(height: 20),
 
-          // Tipo + Estado
+          // Tipo + Prioridad + Estado
           Row(
             children: [
               Expanded(
@@ -221,6 +241,19 @@ class _ConfigGestionCamState extends State<ConfigGestionCam> {
                   onChanged: (value) {
                     setState(() {
                       _tipoCambio = value as String;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Dropdown(
+                  labelText: 'Prioridad',
+                  value: _prioridadCambio,
+                  items: _buildStringDropdownItems(_prioridadOptions),
+                  onChanged: (value) {
+                    setState(() {
+                      _prioridadCambio = value as String;
                     });
                   },
                 ),
@@ -261,17 +294,19 @@ class _ConfigGestionCamState extends State<ConfigGestionCam> {
       child: DataTable(
         columns: const [
           DataColumn(label: Text('ID')),
-          DataColumn(label: Text('Título')),
+          DataColumn(label: Text('Motivo')),
           DataColumn(label: Text('Tipo')),
+          DataColumn(label: Text('Prioridad')),
           DataColumn(label: Text('Estado')),
         ],
         rows: _cambios.map((cambio) {
           return DataRow(
             cells: [
               DataCell(Text('${cambio['id']}')),
-              DataCell(Text('${cambio['titulo']}')),
-              DataCell(Text('${cambio['tipo']}')),
-              DataCell(Text('${cambio['estado']}')),
+              DataCell(Text('${cambio['motivo'] ?? ''}')),
+              DataCell(Text('${cambio['tipo'] ?? ''}')),
+              DataCell(Text('${cambio['prioridad'] ?? ''}')),
+              DataCell(Text('${cambio['estado'] ?? ''}')),
             ],
           );
         }).toList(),
@@ -306,7 +341,7 @@ class _ConfigGestionCamState extends State<ConfigGestionCam> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Formulario con maquetación tipo IncidenciaDetail
+                      // Formulario
                       _buildFormulario(context),
 
                       // Tabla de cambios registrados
@@ -340,15 +375,14 @@ class _ConfigGestionCamState extends State<ConfigGestionCam> {
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-              Button(
-                width: 180,
-                icon: Icons.save,
-                text: 'Guardar cambio',
-                onPressed: _guardarCambio,
-              ),
-            ],
-        
-          ),
+                Button(
+                  width: 180,
+                  icon: Icons.save,
+                  text: 'Guardar cambio',
+                  onPressed: _guardarCambio,
+                ),
+              ],
+            ),
           ],
         ),
       ),
