@@ -919,6 +919,25 @@ class _ElementoFormState extends State<ElementoForm> {
                     }
                   },
                 ),
+                const SizedBox(width: 10,),
+                    Button(
+                  width: 220,
+                  text: 'Solicitar cambio',
+                  icon: Icons.swap_horiz,
+                  backgroundColor: Colors.blueGrey,
+                  onPressed: () {
+                    if (widget.elementoId != null) {
+                      final int idDelElemento = widget.elementoId!;
+                      final String ruta = '/solicitud_cambio_detail/nuevo?elementoId=$idDelElemento';
+                      context.go(ruta);
+                    } else {
+                      MsgtUtil.showWarning(
+                        context,
+                        'Debe guardar el Elemento de Configuración antes de solicitar un cambio.',
+                      );
+                    }
+                  },
+                ),
                 const Spacer(),
                 Button(
                   width: 200,
