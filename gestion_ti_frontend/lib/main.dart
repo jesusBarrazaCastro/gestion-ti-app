@@ -10,6 +10,7 @@ import 'package:gestion_ti_frontend/screens/private/elemento_configuracion_detai
 import 'package:gestion_ti_frontend/screens/private/elementos_configuracion.dart';
 import 'package:gestion_ti_frontend/screens/private/home.dart';
 import 'package:gestion_ti_frontend/screens/private/incidencia_detail.dart';
+import 'package:gestion_ti_frontend/screens/private/solicitud_cambio_detail.dart';
 import 'package:gestion_ti_frontend/screens/private/incidencia_list.dart';
 import 'package:gestion_ti_frontend/screens/private/personas.dart';
 import 'package:gestion_ti_frontend/screens/public/login.dart';
@@ -163,6 +164,25 @@ class MyApp extends StatelessWidget {
           );
         },
       ),
+      GoRoute(
+        path: '/solicitud_cambio_detail/:id',
+        builder: (context, state) {
+          final idParam = state.pathParameters['id']!;
+          final bool esNuevo = idParam == 'nuevo';
+
+          final elementoIdParam = state.uri.queryParameters['elementoId'];
+          final int? elementoId =
+              elementoIdParam != null ? int.tryParse(elementoIdParam) : null;
+
+          return MainLayout(
+            child: SolicitudCambioDetail(
+              solicitudCambioId: esNuevo ? null : int.tryParse(idParam),
+              elementoId: elementoId,
+            ),
+          );
+        },
+      ),
+
       GoRoute(
         path: '/elementos_configuracion_form/:id', // :id es el parámetro opcional para edición
         builder: (context, state) {
